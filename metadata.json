@@ -1,0 +1,5 @@
+{
+  "name": "TradeNexus - Enterprise AI Corps",
+  "description": "An Enterprise Multi-Agent System (MAS) for foreign trade operations. Implements Hierarchical Orchestration, Agentic RAG, and Specialized Agents (Market Intelligence, Compliance, Supply Chain) as outlined in the AI Corps strategic blueprint.",
+  "requestFramePermissions": []
+}
