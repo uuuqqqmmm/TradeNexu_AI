@@ -14,6 +14,10 @@ export interface ProductInsight {
   description: string;
   imageUrl: string;
   tags: string[];
+  // 新增字段
+  dataSource?: 'real' | 'mock';  // 数据来源：真实API/模拟数据
+  amazonSearchUrl?: string;      // 亚马逊搜索链接
+  searchKeyword?: string;        // 搜索关键词
 }
 
 export interface SentimentAnalysis {
@@ -125,4 +129,36 @@ export interface ResearchTask {
   progress: number; // 0-100
   createdAt: number;
   productData?: ProductDetails[];
+  dataSource?: 'real' | 'mock'; // 数据来源标注
 }
+
+// Amazon 产品详情（Rainforest API 返回格式）
+export interface AmazonProductData {
+  asin: string;
+  title: string;
+  recentSalesLabel: string | null;  // "2K+ bought in past month"
+  bsr: number | null;
+  bsrCategory: string | null;
+  price: number | null;
+  currency: string;
+  mainImage: string;
+  link: string;
+  fetchedAt: number;
+  dataSource: 'real' | 'mock';  // 标注数据来源：真实 API 或模拟数据
+}
+
+// 亚马逊调研查询参数
+export interface AmazonResearchQuery {
+  type: 'asin' | 'keyword' | 'url';
+  value: string;
+  domain: string;  // amazon.com, amazon.de, amazon.co.jp 等
+}
+
+// Amazon 站点配置
+export const AMAZON_DOMAINS = [
+  { label: '美国站 (amazon.com)', value: 'amazon.com' },
+  { label: '德国站 (amazon.de)', value: 'amazon.de' },
+  { label: '英国站 (amazon.co.uk)', value: 'amazon.co.uk' },
+  { label: '日本站 (amazon.co.jp)', value: 'amazon.co.jp' },
+  { label: '加拿大站 (amazon.ca)', value: 'amazon.ca' },
+] as const;

@@ -6,8 +6,9 @@ import { TrendChart } from './components/TrendChart';
 import { ProductCard } from './components/ProductCard';
 import { MCPLiveLog } from './components/MCPLiveLog';
 import { ThinkingChain } from './components/ThinkingChain';
+import { AmazonResearchDialog } from './components/AmazonResearchDialog';
 import { generateTrendAnalysis } from './services/geminiService';
-import { AgentType, Message, MCPLog, MCPToolStatus, AgentProtocolEvent, ProductCatalog, ResearchTask } from './src/types';
+import { AgentType, Message, MCPLog, MCPToolStatus, AgentProtocolEvent, ProductCatalog, ResearchTask, AmazonProductData } from './src/types';
 import { Send, Search, Cpu, BrainCircuit, ShieldAlert, Bot } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -44,6 +45,9 @@ export const App: React.FC = () => {
 
   // 市场调研任务状态
   const [researchTasks, setResearchTasks] = useState<ResearchTask[]>([]);
+
+  // Amazon 调研对话框状态
+  const [isAmazonDialogOpen, setIsAmazonDialogOpen] = useState(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -231,6 +235,24 @@ export const App: React.FC = () => {
     // TODO: 显示任务详情或加载到聊天中
   };
 
+  // 处理 Amazon 调研结果
+  const handleAmazonProductsFound = (products: AmazonProductData[]) => {
+    console.log('Amazon 产品数据:', products);
+    // 创建新的调研任务
+    if (products.length > 0) {
+      const newTask: ResearchTask = {
+        id: `amazon_${Date.now()}`,
+        platform: 'Amazon',
+        productQuery: products[0].title.slice(0, 30),
+        status: 'completed',
+        progress: 100,
+        createdAt: Date.now(),
+        dataSource: products[0].dataSource
+      };
+      setResearchTasks(prev => [newTask, ...prev]);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-nexus-900 text-gray-200 font-sans">
       {/* 左侧：市场调研侧边栏 */}
@@ -245,6 +267,7 @@ export const App: React.FC = () => {
         onSelectAgent={setActiveAgent}
         agentStatuses={agentStatuses}
         catalogData={catalogData}
+        onOpenAmazonResearch={() => setIsAmazonDialogOpen(true)}
       />
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -400,6 +423,13 @@ export const App: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Amazon 调研对话框 */}
+      <AmazonResearchDialog
+        isOpen={isAmazonDialogOpen}
+        onClose={() => setIsAmazonDialogOpen(false)}
+        onProductsFound={handleAmazonProductsFound}
+      />
     </div>
   );
 };

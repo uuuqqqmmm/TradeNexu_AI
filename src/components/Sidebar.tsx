@@ -10,9 +10,10 @@ interface SidebarProps {
   catalogData: ProductCatalog;
   researchTasks: ResearchTask[];
   onSelectTask: (task: ResearchTask) => void;
+  onOpenAmazonResearch?: () => void;  // Amazon 调研对话框回调
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, agentStatuses, catalogData, researchTasks, onSelectTask }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, agentStatuses, catalogData, researchTasks, onSelectTask, onOpenAmazonResearch }) => {
   const [expandedSections, setExpandedSections] = useState({
     agentMatrix: true,
     marketResearch: true,
@@ -130,6 +131,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, ag
 
           {expandedSections.marketResearch && (
             <div className="px-3 space-y-2 animate-in slide-in-from-top-1 duration-200">
+
+              {/* Amazon 调研快捷入口 */}
+              <button
+                onClick={onOpenAmazonResearch}
+                className="w-full flex items-center gap-3 p-3 bg-gradient-to-r from-orange-500/10 to-transparent hover:from-orange-500/20 border border-orange-500/30 hover:border-orange-500/50 rounded-lg transition-all group"
+              >
+                <div className="p-1.5 rounded-md bg-orange-500/20 group-hover:bg-orange-500/30 transition-colors">
+                  <ShoppingCart size={16} className="text-orange-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-medium text-gray-200 group-hover:text-orange-400 transition-colors">Amazon 调研</div>
+                  <div className="text-[10px] text-gray-500">ASIN/关键词/URL 搜索</div>
+                </div>
+                <ChevronRight size={14} className="text-gray-600 group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all" />
+              </button>
 
               {/* 2.1 调研任务 (二级目录) */}
               <div className="overflow-hidden rounded-lg bg-nexus-800/20 border border-nexus-800/50">

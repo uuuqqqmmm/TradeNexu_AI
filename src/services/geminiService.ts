@@ -48,7 +48,11 @@ const responseSchema = {
           complianceNote: { type: Type.STRING },
           description: { type: Type.STRING },
           imageUrl: { type: Type.STRING },
-          tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+          tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+          // 新增字段
+          dataSource: { type: Type.STRING, enum: ['real', 'mock'], description: '数据来源：real=真实API, mock=模拟数据' },
+          amazonSearchUrl: { type: Type.STRING, description: '亚马逊搜索链接' },
+          searchKeyword: { type: Type.STRING, description: '搜索关键词' }
         }
       }
     },
@@ -67,27 +71,38 @@ const formatHistory = (history: Message[]): string => {
   ).join('\n');
 };
 
-// 工具执行辅助函数
+// 工具执行辅助函数 - 增强错误处理
 const executeTools = async (functionCalls: any[]) => {
   const results = [];
   for (const call of functionCalls) {
-    const fn = toolsMap[call.name as keyof typeof toolsMap];
-    if (fn) {
-      const args = call.args;
-      // 根据不同工具签名调用
-      let result;
-      if (call.name === 'fetchProductDetails') {
-        result = await fn(args.query, args.platform);
-      } else if (call.name === 'fetchCompetitors') {
-        result = await fn(args.productName);
-      } else if (call.name === 'fetchProductReviews') {
-        result = await fn(args.productId);
+    try {
+      console.log(`[executeTools] 执行工具: ${call.name}, 参数:`, call.args);
+      const fn = toolsMap[call.name as keyof typeof toolsMap];
+      if (!fn) {
+        console.warn(`[executeTools] 未找到工具: ${call.name}`);
+        continue;
       }
 
+      const args = call.args || {};
+      let result;
+
+      if (call.name === 'fetchProductDetails') {
+        // 调用产品详情工具，默认使用 Amazon 平台
+        result = await fn(args.query || '', args.platform || 'Amazon');
+      } else if (call.name === 'fetchCompetitors') {
+        result = await fn(args.productName || '');
+      } else if (call.name === 'fetchProductReviews') {
+        result = await fn(args.productId || '');
+      }
+
+      console.log(`[executeTools] 工具 ${call.name} 返回结果数量:`, Array.isArray(result) ? result.length : 1);
       results.push({
         name: call.name,
         result: result
       });
+    } catch (toolError) {
+      console.error(`[executeTools] 工具 ${call.name} 执行失败:`, toolError);
+      // 继续执行其他工具，不中断整个流程
     }
   }
   return results;
@@ -103,19 +118,26 @@ export const generateTrendAnalysis = async (apiKey: string, query: string, histo
   try {
     console.log("🔧 启动工具执行阶段...");
 
-    // 构建鼓励使用工具的提示词
+    // 构建强力鼓励使用工具的提示词
     const toolSystemPrompt = `
-      你是"市场情报官 (Market Intelligence Officer)"。
-      你的目标是收集实时数据以回答用户的请求："${query}"
+      你是\"市场情报官 (Market Intelligence Officer)\"，核心职责是通过真实 API 获取市场数据。
       
-      可用工具：
-      - fetchProductDetails: 获取 Amazon、TikTok 等平台的产品价格、销量和图片
-      - fetchCompetitors: 查找特定产品的竞品
+      用户请求：\"${query}\"
       
-      指令：
-      1. 分析请求。如果需要具体的产品数据，调用 'fetchProductDetails' 工具。
-      2. 如有需要，可以为不同平台多次调用工具。
-      3. 如果不需要外部数据，或在收到工具输出后，简单回复 "DATA_COLLECTION_COMPLETE"。
+      【可用工具】:
+      - fetchProductDetails(query, platform): 搜索 Amazon/TikTok 等平台的产品，返回销量、价格、BSR排名
+        - query: 搜索关键词（如"wireless earbuds", "宠物用品"）
+        - platform: "Amazon" | "TikTok" | "Alibaba"
+      - fetchCompetitors(productName): 查找竞品
+      
+      【重要指令】:
+      1. 如果用户询问任何产品、市场趋势、爆款、热销产品，必须调用 fetchProductDetails 工具
+      2. 平台默认选 "Amazon"，除非用户明确指定其他平台
+      3. 工具会返回【真实排名】数据，包括 BSR 和销量标签
+      4. 调用工具后，你会收到数据，然后回复 "DATA_COLLECTION_COMPLETE"
+      
+      【立即行动】:
+      从用户请求中提取核心关键词，调用 fetchProductDetails 获取数据。
     `;
 
     // 第一轮：询问模型是否使用工具
@@ -172,7 +194,7 @@ export const generateTrendAnalysis = async (apiKey: string, query: string, histo
     上下文历史：
     ${historyContext}
 
-    【实时市场数据 (由 Market Intelligence Officer 提供)】:
+    【实时市场数据 (由 Market Intelligence Officer 通过 Rainforest API 获取)】:
     ${toolContext}
 
     当前指令： "${query}"
@@ -180,12 +202,31 @@ export const generateTrendAnalysis = async (apiKey: string, query: string, histo
     【输出要求】:
     - 严格遵循 JSON Schema。
     - agentProtocolLogs 至少包含 4-6 个交互步骤。
-    - 如果有了实时市场数据，请务必在 'topProducts' 和 'trendData' 中使用这些真实数据，而不是编造数据。
-    - 图片使用数据中的 'main_image' 或 "https://picsum.photos/400/300?random=X"。
-    - **深度分析**: 如果有 'sentiment' 或 'priceHistory' 数据，请在 'description' 或 'strategicAdvice' 中体现。
+    
+    【重要 - 爆款排名与数据来源】:
+    - 如果 toolContext 包含真实产品数据：
+      1. 在 summary 中提及"已从 Amazon 获取真实数据"
+      2. topProducts 必须使用真实数据，按销量/BSR 排名
+      3. 每个产品的 dataSource 设置为 "real"
+      4. amazonSearchUrl 设置为: https://www.amazon.com/s?k={关键词}
+      5. searchKeyword 设置为用户的搜索关键词（英文）
+      6. 在 strategicAdvice 中分析热销原因和采购建议
+    - 如果没有真实数据：
+      1. 说明"使用模拟数据演示"
+      2. 每个产品的 dataSource 设置为 "mock"
+      3. 同样生成 amazonSearchUrl 和 searchKeyword
+    
+    【产品信息格式】:
+    - imageUrl: 使用数据中的 main_image，没有则用 "https://picsum.photos/400/300?random=X"
+    - trendScore: 根据销量标签推算 ("100+ bought" = 50-70, "1K+ bought" = 80-90, "5K+ bought" = 90+)
+    - amazonSearchUrl: 格式为 https://www.amazon.com/s?k=产品英文关键词（空格用+替换）
+    - searchKeyword: 产品的英文搜索关键词，如 "smart pet feeder"、"wireless earbuds"
   `;
 
   try {
+    console.log("📤 阶段 2: 开始最终 JSON 生成...");
+    console.log("📋 toolContext 长度:", toolContext.length);
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: query,
@@ -196,11 +237,15 @@ export const generateTrendAnalysis = async (apiKey: string, query: string, histo
       }
     });
 
+    console.log("📥 阶段 2: 收到 Gemini 响应");
     const text = response.text;
     if (!text) throw new Error("无法从 Gemini 获取响应");
+    console.log("✅ 阶段 2: JSON 解析成功");
     return JSON.parse(text) as AnalysisResult;
-  } catch (error) {
-    console.error("Agentic 分析失败:", error);
+  } catch (error: any) {
+    console.error("❌ Agentic 分析失败:", error);
+    console.error("❌ 错误详情:", error?.message || error);
+    console.error("❌ 错误堆栈:", error?.stack);
     throw error;
   }
 };

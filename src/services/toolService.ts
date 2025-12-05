@@ -1,7 +1,8 @@
 import { ProductDetails } from "../types";
-import { Tool } from "@google/genai";
+import { Tool, Type } from "@google/genai";
+import { searchAmazonProducts, getDataSourceMode } from "./rainforestService";
 
-// 模拟数据生成器
+// 模拟数据生成器（用于非 Amazon 平台的回退）
 const mockProducts: Record<string, ProductDetails[]> = {
     "Amazon": [
         {
@@ -27,26 +28,6 @@ const mockProducts: Record<string, ProductDetails[]> = {
                 { name: "Bose QuietComfort 45", price: "$279.00", advantage: "Better Comfort", disadvantage: "Less Battery" },
                 { name: "Apple AirPods Max", price: "$549.00", advantage: "Ecosystem", disadvantage: "Heavy" }
             ]
-        },
-        {
-            title: "Anker Soundcore Life Q30",
-            price: "$79.99",
-            sales_volume: "10K+ bought in past month",
-            main_image: "https://picsum.photos/400/400?random=102",
-            url: "https://www.amazon.com/dp/B08HMWZBXC",
-            platform: "Amazon",
-            rating: 4.5,
-            reviewCount: 50000,
-            sentiment: {
-                score: 0.7,
-                keywords: ["Value for money", "Good Bass", "Plastic build"],
-                summary: "Best budget option, great sound for the price but build quality is average."
-            },
-            priceHistory: [
-                { date: "2024-09-01", price: 89.99, volume: 800 },
-                { date: "2024-10-01", price: 79.99, volume: 1200 },
-                { date: "2024-11-01", price: 69.99, volume: 1500 }
-            ]
         }
     ],
     "TikTok": [
@@ -68,17 +49,56 @@ const mockProducts: Record<string, ProductDetails[]> = {
     ]
 };
 
+/**
+ * 获取产品详情 - Amazon 平台使用真实 Rainforest API
+ */
 export const fetchProductDetails = async (query: string, platform: string = "Amazon"): Promise<ProductDetails[]> => {
-    console.log(`[Tool] Fetching products for "${query}" on ${platform}...`);
+    const dataMode = getDataSourceMode();
+    console.log(`[Tool] 获取产品数据 "${query}" 平台: ${platform}，数据模式: ${dataMode}`);
 
-    // 模拟网络延迟
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Amazon 平台：调用真实 Rainforest API
+    if (platform === "Amazon") {
+        try {
+            const amazonProducts = await searchAmazonProducts(query, "amazon.com", 5);
 
-    // 简单的关键词匹配模拟
+            // 按销量排序（解析 recentSalesLabel 中的数字）
+            const sortedProducts = amazonProducts.sort((a, b) => {
+                const getVolume = (label: string | null) => {
+                    if (!label) return 0;
+                    const match = label.match(/(\d+)K?\+?/i);
+                    return match ? parseInt(match[1]) * (label.includes('K') ? 1000 : 1) : 0;
+                };
+                return getVolume(b.recentSalesLabel) - getVolume(a.recentSalesLabel);
+            });
+
+            // 转换为 ProductDetails 格式
+            return sortedProducts.map((p, index) => ({
+                title: p.title,
+                price: p.price ? `$${p.price.toFixed(2)}` : "价格未知",
+                sales_volume: p.recentSalesLabel || "销量未知",
+                main_image: p.mainImage,
+                url: p.link,
+                platform: "Amazon",
+                rating: 0,  // Rainforest 搜索接口不返回评分
+                reviewCount: 0,
+                bsr: p.bsr,
+                bsrCategory: p.bsrCategory,
+                dataSource: p.dataSource,
+                rankInResults: index + 1  // 在结果中的排名
+            }));
+        } catch (error) {
+            console.error("[Tool] Rainforest API 调用失败，使用模拟数据:", error);
+        }
+    }
+
+    // 其他平台或 API 失败时使用模拟数据
+    await new Promise(resolve => setTimeout(resolve, 500));
     const products = mockProducts[platform] || mockProducts["Amazon"];
-    return products.map(p => ({
+    return products.map((p, index) => ({
         ...p,
-        title: `${p.title} - ${query} Edition` // 动态修改标题以显示“实时性”
+        title: `${p.title} - ${query}`,
+        dataSource: 'mock' as const,
+        rankInResults: index + 1
     }));
 };
 
@@ -102,22 +122,23 @@ export const fetchProductReviews = async (productId: string): Promise<any> => {
 };
 
 // Gemini 工具定义
+
 export const marketIntelligenceTools: Tool[] = [
     {
         functionDeclarations: [
             {
                 name: "fetchProductDetails",
-                description: "Fetch real-time product details, price history, and sentiment from e-commerce platforms.",
+                description: "搜索电商平台的产品信息，获取价格、销量、BSR排名等实时数据。当用户询问产品、市场趋势、爆款时必须调用此工具。",
                 parameters: {
-                    type: "OBJECT",
+                    type: Type.OBJECT,
                     properties: {
                         query: {
-                            type: "STRING",
-                            description: "Search keywords or URL."
+                            type: Type.STRING,
+                            description: "搜索关键词，如 'wireless earbuds'、'宠物用品'、'micro SD card'",
                         },
                         platform: {
-                            type: "STRING",
-                            description: "The platform to search on.",
+                            type: Type.STRING,
+                            description: "电商平台名称",
                             enum: ["Amazon", "TikTok", "Alibaba", "AliExpress"]
                         }
                     },
@@ -126,11 +147,14 @@ export const marketIntelligenceTools: Tool[] = [
             },
             {
                 name: "fetchCompetitors",
-                description: "Find competitors for a specific product.",
+                description: "查找特定产品的竞争对手信息",
                 parameters: {
-                    type: "OBJECT",
+                    type: Type.OBJECT,
                     properties: {
-                        productName: { type: "STRING" }
+                        productName: {
+                            type: Type.STRING,
+                            description: "产品名称"
+                        }
                     },
                     required: ["productName"]
                 }
