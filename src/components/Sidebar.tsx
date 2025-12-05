@@ -11,9 +11,10 @@ interface SidebarProps {
   researchTasks: ResearchTask[];
   onSelectTask: (task: ResearchTask) => void;
   onOpenAmazonResearch?: () => void;  // Amazon 调研对话框回调
+  onOpenTikTokResearch?: () => void;  // TikTok 调研对话框回调
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, agentStatuses, catalogData, researchTasks, onSelectTask, onOpenAmazonResearch }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, agentStatuses, catalogData, researchTasks, onSelectTask, onOpenAmazonResearch, onOpenTikTokResearch }) => {
   const [expandedSections, setExpandedSections] = useState({
     agentMatrix: true,
     marketResearch: true,
@@ -145,6 +146,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, ag
                   <div className="text-[10px] text-gray-500">ASIN/关键词/URL 搜索</div>
                 </div>
                 <ChevronRight size={14} className="text-gray-600 group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all" />
+              </button>
+
+              {/* TikTok 调研快捷入口 */}
+              <button
+                onClick={onOpenTikTokResearch}
+                className="w-full flex items-center gap-3 p-3 bg-gradient-to-r from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border border-pink-500/30 hover:border-pink-500/50 rounded-lg transition-all group"
+              >
+                <div className="p-1.5 rounded-md bg-gradient-to-br from-pink-500/20 to-purple-500/20 group-hover:from-pink-500/30 group-hover:to-purple-500/30 transition-colors">
+                  <Video size={16} className="text-pink-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-medium text-gray-200 group-hover:text-pink-400 transition-colors">TikTok 调研</div>
+                  <div className="text-[10px] text-gray-500">热销产品与趋势分析</div>
+                </div>
+                <ChevronRight size={14} className="text-gray-600 group-hover:text-pink-400 group-hover:translate-x-0.5 transition-all" />
               </button>
 
               {/* 2.1 调研任务 (二级目录) */}

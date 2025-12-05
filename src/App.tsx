@@ -6,8 +6,10 @@ import { ProductCard } from './components/ProductCard';
 import { MCPLiveLog } from './components/MCPLiveLog';
 import { ThinkingChain } from './components/ThinkingChain';
 import { AmazonResearchDialog } from './components/AmazonResearchDialog';
+import { TikTokResearchDialog } from './components/TikTokResearchDialog';
 import { generateTrendAnalysis } from './services/geminiService';
 import { AgentType, Message, MCPLog, MCPToolStatus, AgentProtocolEvent, ProductCatalog, ResearchTask, AmazonProductData } from './types';
+import { TikTokProductData } from './services/tiktokService';
 import { Send, Search, Cpu, BrainCircuit, ShieldAlert, Bot } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -47,6 +49,9 @@ export const App: React.FC = () => {
 
   // Amazon 调研对话框状态
   const [isAmazonDialogOpen, setIsAmazonDialogOpen] = useState(false);
+
+  // TikTok 调研对话框状态
+  const [isTikTokDialogOpen, setIsTikTokDialogOpen] = useState(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -262,6 +267,7 @@ export const App: React.FC = () => {
         researchTasks={researchTasks}
         onSelectTask={handleSelectTask}
         onOpenAmazonResearch={() => setIsAmazonDialogOpen(true)}
+        onOpenTikTokResearch={() => setIsTikTokDialogOpen(true)}
       />
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -423,6 +429,12 @@ export const App: React.FC = () => {
         isOpen={isAmazonDialogOpen}
         onClose={() => setIsAmazonDialogOpen(false)}
         onProductsFound={handleAmazonProductsFound}
+      />
+
+      {/* TikTok 调研对话框 */}
+      <TikTokResearchDialog
+        isOpen={isTikTokDialogOpen}
+        onClose={() => setIsTikTokDialogOpen(false)}
       />
     </div>
   );
