@@ -14,10 +14,15 @@ export interface ProductInsight {
   description: string;
   imageUrl: string;
   tags: string[];
-  // 新增字段
+  // 数据来源字段
   dataSource?: 'real' | 'mock';  // 数据来源：真实API/模拟数据
-  amazonSearchUrl?: string;      // 亚马逊搜索链接
+  amazonSearchUrl?: string;      // 亚马逊搜索链接（备用）
   searchKeyword?: string;        // 搜索关键词
+  // 产品详情链接
+  productUrl?: string;           // 具体产品页面链接 (如 amazon.com/dp/ASIN)
+  asin?: string;                 // Amazon ASIN
+  price?: string;                // 产品价格
+  salesVolume?: string;          // 销量标签
 }
 
 export interface SentimentAnalysis {
@@ -132,7 +137,7 @@ export interface ResearchTask {
   dataSource?: 'real' | 'mock'; // 数据来源标注
 }
 
-// Amazon 产品详情（Rainforest API 返回格式）
+// Amazon 产品详情（Apify Amazon Scraper 返回格式）
 export interface AmazonProductData {
   asin: string;
   title: string;
@@ -145,6 +150,11 @@ export interface AmazonProductData {
   link: string;
   fetchedAt: number;
   dataSource: 'real' | 'mock';  // 标注数据来源：真实 API 或模拟数据
+  // Apify 扩展字段
+  rating?: number | null;
+  reviewCount?: number;
+  brand?: string | null;
+  description?: string | null;
 }
 
 // 亚马逊调研查询参数

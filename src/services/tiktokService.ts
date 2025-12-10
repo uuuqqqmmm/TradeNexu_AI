@@ -1,6 +1,16 @@
 // TikTok Shop 数据服务
-// 集成 TikTok Shop 产品数据获取（使用模拟+真实API混合模式）
+// 集成 Apify TikTok Scraper API 获取真实数据
 import { AmazonProductData } from '../types';
+
+// Apify API 配置
+const APIFY_BASE_URL = 'https://api.apify.com/v2';
+const TIKTOK_SCRAPER_ACTOR_ID = 'clockworks~tiktok-scraper'; // Apify TikTok Scraper Actor
+
+// 获取 Apify Token
+const getApifyToken = (): string | null => {
+    const token = import.meta.env.VITE_APIFY_TOKEN;
+    return token && token !== 'your_apify_token_here' ? token : null;
+};
 
 // TikTok 产品数据接口
 export interface TikTokProductData {
@@ -125,8 +135,106 @@ const generateMockTikTokProduct = (query: string, index: number): TikTokProductD
  * 检测当前数据源模式
  */
 export const getTikTokDataSourceMode = (): 'real' | 'mock' => {
-    const apiKey = import.meta.env.VITE_TIKTOK_API_KEY;
-    return apiKey ? 'real' : 'mock';
+    return getApifyToken() ? 'real' : 'mock';
+};
+
+/**
+ * 调用 Apify Actor 并等待结果
+ */
+const runApifyActor = async (input: Record<string, any>): Promise<any[]> => {
+    const token = getApifyToken();
+    if (!token) {
+        throw new Error('Apify Token 未配置');
+    }
+
+    console.log('[TikTok] 调用 Apify Actor...', input);
+
+    // 启动 Actor 运行
+    const runResponse = await fetch(
+        `${APIFY_BASE_URL}/acts/${TIKTOK_SCRAPER_ACTOR_ID}/runs?token=${token}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(input)
+        }
+    );
+
+    if (!runResponse.ok) {
+        const errorText = await runResponse.text();
+        console.error('[TikTok] Apify 启动失败:', errorText);
+        throw new Error(`Apify Actor 启动失败: ${runResponse.status}`);
+    }
+
+    const runData = await runResponse.json();
+    const runId = runData.data.id;
+    console.log('[TikTok] Actor 运行 ID:', runId);
+
+    // 轮询等待完成 (最多等待 60 秒)
+    const maxWaitTime = 60000;
+    const pollInterval = 2000;
+    let elapsed = 0;
+
+    while (elapsed < maxWaitTime) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        elapsed += pollInterval;
+
+        const statusResponse = await fetch(
+            `${APIFY_BASE_URL}/actor-runs/${runId}?token=${token}`
+        );
+        const statusData = await statusResponse.json();
+        const status = statusData.data.status;
+
+        console.log(`[TikTok] 运行状态: ${status} (${elapsed / 1000}s)`);
+
+        if (status === 'SUCCEEDED') {
+            // 获取数据集结果
+            const datasetId = statusData.data.defaultDatasetId;
+            const dataResponse = await fetch(
+                `${APIFY_BASE_URL}/datasets/${datasetId}/items?token=${token}`
+            );
+            return await dataResponse.json();
+        } else if (status === 'FAILED' || status === 'ABORTED') {
+            throw new Error(`Actor 运行失败: ${status}`);
+        }
+    }
+
+    throw new Error('Actor 运行超时');
+};
+
+/**
+ * 将 Apify 返回数据转换为 TikTokProductData 格式
+ */
+const transformApifyData = (items: any[]): TikTokProductData[] => {
+    return items.slice(0, 10).map((item, index) => ({
+        productId: item.id || `TT_${Date.now()}_${index}`,
+        title: item.text || item.desc || 'TikTok Video',
+        price: null, // TikTok 视频数据不含价格
+        originalPrice: null,
+        currency: 'USD',
+        salesCount: null,
+        rating: null,
+        reviewCount: item.commentCount || 0,
+        mainImage: item.covers?.[0] || item.videoMeta?.coverUrl || `https://picsum.photos/400/400?random=${800 + index}`,
+        videoViews: formatViews(item.playCount || item.videoMeta?.playCount || 0),
+        shopName: item.authorMeta?.name || item.author?.nickname || 'TikTok Creator',
+        shopRating: null,
+        link: item.webVideoUrl || `https://www.tiktok.com/@${item.authorMeta?.name}/video/${item.id}`,
+        category: item.hashtags?.[0]?.name || 'Trending',
+        fetchedAt: Date.now(),
+        dataSource: 'real' as const
+    }));
+};
+
+/**
+ * 格式化播放量
+ */
+const formatViews = (count: number): string => {
+    if (count >= 1000000) {
+        return `${(count / 1000000).toFixed(1)}M views`;
+    } else if (count >= 1000) {
+        return `${(count / 1000).toFixed(0)}K views`;
+    }
+    return `${count} views`;
 };
 
 /**
@@ -140,17 +248,27 @@ export const searchTikTokProducts = async (
     const dataMode = getTikTokDataSourceMode();
     console.log(`[TikTok] 搜索产品 "${query}" 地区: ${region}，模式: ${dataMode}`);
 
-    // 真实 API 调用（需要 API Key）
+    // 真实 API 调用（使用 Apify）
     if (dataMode === 'real') {
         try {
-            // TODO: 集成真实 TikTok Shop API（如 Kalodata 或 ScrapeCreators）
-            // const response = await fetch(`https://api.kalodata.com/tiktok/search?q=${encodeURIComponent(query)}&region=${region}`, {
-            //   headers: { 'Authorization': `Bearer ${import.meta.env.VITE_TIKTOK_API_KEY}` }
-            // });
-            // return await response.json();
-            console.log('[TikTok] 真实 API 模式 - 使用模拟数据演示');
+            console.log('[TikTok] 使用 Apify TikTok Scraper 获取真实数据...');
+            
+            // Apify TikTok Scraper 输入参数
+            const input = {
+                searchQueries: [query],
+                resultsPerPage: Math.min(limit, 20),
+                shouldDownloadVideos: false,
+                shouldDownloadCovers: false
+            };
+
+            const results = await runApifyActor(input);
+            
+            if (results && results.length > 0) {
+                console.log(`[TikTok] 获取到 ${results.length} 条真实数据`);
+                return transformApifyData(results).slice(0, limit);
+            }
         } catch (error) {
-            console.error('[TikTok] API 调用失败:', error);
+            console.error('[TikTok] Apify API 调用失败，降级到模拟数据:', error);
         }
     }
 
@@ -176,6 +294,32 @@ export const getTikTokTrendingProducts = async (
     category?: string
 ): Promise<TikTokProductData[]> => {
     console.log(`[TikTok] 获取热门趋势 地区: ${region}，分类: ${category || '全部'}`);
+
+    const dataMode = getTikTokDataSourceMode();
+
+    // 真实 API 调用（使用 Apify）
+    if (dataMode === 'real') {
+        try {
+            console.log('[TikTok] 使用 Apify 获取热门趋势...');
+            
+            // 获取热门话题/趋势
+            const input = {
+                hashtags: ['trending', 'viral', 'fyp'],
+                resultsPerPage: 10,
+                shouldDownloadVideos: false,
+                shouldDownloadCovers: false
+            };
+
+            const results = await runApifyActor(input);
+            
+            if (results && results.length > 0) {
+                console.log(`[TikTok] 获取到 ${results.length} 条热门趋势数据`);
+                return transformApifyData(results);
+            }
+        } catch (error) {
+            console.error('[TikTok] Apify 热门趋势获取失败，使用预设数据:', error);
+        }
+    }
 
     // 返回预设的热门产品
     const trendingProducts: TikTokProductData[] = [

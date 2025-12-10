@@ -8,8 +8,10 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  // 生成亚马逊搜索URL
-  const amazonSearchUrl = product.amazonSearchUrl ||
+  // 优先使用产品详情页链接，其次是搜索链接
+  const productLink = product.productUrl || 
+    (product.asin ? `https://www.amazon.com/dp/${product.asin}` : null) ||
+    product.amazonSearchUrl ||
     (product.searchKeyword
       ? `https://www.amazon.com/s?k=${encodeURIComponent(product.searchKeyword)}`
       : `https://www.amazon.com/s?k=${encodeURIComponent(product.name)}`);
@@ -19,9 +21,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const dataSourceLabel = isRealData ? '真实' : '模拟';
   const dataSourceColor = isRealData ? 'bg-green-500' : 'bg-orange-500';
 
-  // 点击卡片跳转
+  // 点击卡片跳转到产品详情页
   const handleCardClick = () => {
-    window.open(amazonSearchUrl, '_blank', 'noopener,noreferrer');
+    window.open(productLink, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -94,6 +96,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           ))}
         </div>
 
+        {/* 价格和销量信息 */}
+        {(product.price || product.salesVolume) && (
+          <div className="flex items-center justify-between mb-3 text-sm">
+            {product.price && (
+              <div className="flex items-center text-nexus-warning font-bold">
+                <DollarSign size={14} className="mr-0.5" />
+                <span>{product.price.replace('$', '')}</span>
+              </div>
+            )}
+            {product.salesVolume && (
+              <div className="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded">
+                {product.salesVolume}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 底部信息 */}
         <div className="flex items-center justify-between pt-3 border-t border-nexus-700">
           <div className="flex items-center text-sm text-gray-300">
@@ -102,7 +121,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <span className="text-white font-medium ml-1">{product.profitMargin || 'N/A'}</span>
           </div>
           <div className="text-[10px] text-gray-500 flex items-center gap-1">
-            <span>点击查看详情</span>
+            {product.asin && <span className="text-gray-600">ASIN: {product.asin}</span>}
             <ExternalLink size={10} />
           </div>
         </div>

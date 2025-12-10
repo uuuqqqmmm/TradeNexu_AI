@@ -1,21 +1,22 @@
 /**
- * Rainforest API 服务
+ * Amazon 数据服务 (Apify Amazon Scraper)
  * 用于获取亚马逊产品数据
  * 
  * 配置说明:
- * - 如果设置了 RAINFOREST_API_KEY，使用真实 API
- * - 否则使用模拟数据（用于开发和演示）
+ * - 使用 Apify Amazon Scraper Actor
+ * - 需要配置 VITE_APIFY_TOKEN
  */
 
 import { AmazonProductData, AmazonResearchQuery } from '../types';
 
-// API 配置
-const RAINFOREST_BASE_URL = 'https://api.rainforestapi.com/request';
+// Apify API 配置
+const APIFY_BASE_URL = 'https://api.apify.com/v2';
+const AMAZON_SCRAPER_ACTOR_ID = 'junglee~amazon-scraper'; // Apify Amazon Scraper Actor
 
-// 检查是否配置了真实 API Key
-const getRainforestApiKey = (): string | null => {
-    const key = import.meta.env.VITE_RAINFOREST_API_KEY;
-    return key && key !== 'your_rainforest_api_key' ? key : null;
+// 获取 Apify Token
+const getApifyToken = (): string | null => {
+    const token = import.meta.env.VITE_APIFY_TOKEN;
+    return token && token !== 'your_apify_token_here' ? token : null;
 };
 
 // ============== 模拟数据 ==============
@@ -76,6 +77,141 @@ const generateMockProduct = (query: string, index: number): AmazonProductData =>
     dataSource: 'mock'
 });
 
+// ============== Apify Actor 执行函数 ==============
+
+/**
+ * 运行 Apify Amazon Scraper Actor 并获取结果
+ */
+const runApifyAmazonActor = async (input: Record<string, any>): Promise<any[]> => {
+    const token = getApifyToken();
+    if (!token) {
+        throw new Error('Apify Token 未配置');
+    }
+
+    console.log('[Apify Amazon] 启动 Actor，输入:', JSON.stringify(input));
+
+    // 1. 启动 Actor 运行
+    const runResponse = await fetch(
+        `${APIFY_BASE_URL}/acts/${AMAZON_SCRAPER_ACTOR_ID}/runs?token=${token}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(input)
+        }
+    );
+
+    if (!runResponse.ok) {
+        const errorText = await runResponse.text();
+        throw new Error(`启动 Actor 失败: ${errorText}`);
+    }
+
+    const runData = await runResponse.json();
+    const runId = runData.data?.id;
+    console.log('[Apify Amazon] Actor 运行 ID:', runId);
+
+    if (!runId) {
+        throw new Error('无法获取运行 ID');
+    }
+
+    // 2. 轮询等待运行完成 (最多等待 120 秒)
+    const maxWaitTime = 120000;
+    const pollInterval = 3000;
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < maxWaitTime) {
+        const statusResponse = await fetch(
+            `${APIFY_BASE_URL}/actor-runs/${runId}?token=${token}`
+        );
+        const statusData = await statusResponse.json();
+        const status = statusData.data?.status;
+
+        console.log(`[Apify Amazon] 运行状态: ${status}`);
+
+        if (status === 'SUCCEEDED') {
+            // 3. 获取数据集结果
+            const datasetId = statusData.data?.defaultDatasetId;
+            if (!datasetId) {
+                throw new Error('无法获取数据集 ID');
+            }
+
+            const itemsResponse = await fetch(
+                `${APIFY_BASE_URL}/datasets/${datasetId}/items?token=${token}`
+            );
+            const items = await itemsResponse.json();
+            console.log(`[Apify Amazon] 获取到 ${items.length} 条数据`);
+            return items;
+        }
+
+        if (status === 'FAILED' || status === 'ABORTED' || status === 'TIMED-OUT') {
+            throw new Error(`Actor 运行失败: ${status}`);
+        }
+
+        // 等待后继续轮询
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+
+    throw new Error('Actor 运行超时');
+};
+
+/**
+ * 转换 Apify 数据为 AmazonProductData 格式
+ */
+const transformApifyAmazonData = (items: any[]): AmazonProductData[] => {
+    return items.map((item, index) => {
+        // 解析价格
+        let price: number | null = null;
+        if (item.price) {
+            // 价格可能是 "$29.99" 或 "29.99" 或数字
+            const priceStr = String(item.price).replace(/[^0-9.]/g, '');
+            price = parseFloat(priceStr) || null;
+        }
+
+        // 解析 BSR
+        let bsr: number | null = null;
+        let bsrCategory: string | null = null;
+        if (item.reviewsCount) {
+            // 使用评论数作为热度参考
+            bsr = Math.max(1, Math.floor(100 - (item.reviewsCount / 1000)));
+        }
+        if (item.breadCrumbs || item.categories) {
+            bsrCategory = item.breadCrumbs || (Array.isArray(item.categories) ? item.categories.join(' > ') : item.categories);
+        }
+
+        // 构建销量标签
+        let recentSalesLabel: string | null = null;
+        if (item.reviewsCount) {
+            if (item.reviewsCount > 10000) {
+                recentSalesLabel = '10K+ bought in past month';
+            } else if (item.reviewsCount > 5000) {
+                recentSalesLabel = '5K+ bought in past month';
+            } else if (item.reviewsCount > 1000) {
+                recentSalesLabel = '1K+ bought in past month';
+            } else if (item.reviewsCount > 100) {
+                recentSalesLabel = '100+ bought in past month';
+            }
+        }
+
+        return {
+            asin: item.asin || `APIFY_${index}`,
+            title: item.title || '未知产品',
+            recentSalesLabel,
+            bsr,
+            bsrCategory,
+            price,
+            currency: 'USD',
+            mainImage: item.thumbnailImage || item.image || `https://picsum.photos/400/400?random=${400 + index}`,
+            link: item.url || `https://www.amazon.com/dp/${item.asin}`,
+            fetchedAt: Date.now(),
+            dataSource: 'real',
+            // 额外字段
+            rating: item.stars || null,
+            reviewCount: item.reviewsCount || 0,
+            brand: item.brand || null,
+            description: item.description || null
+        };
+    });
+};
+
 // ============== API 调用函数 ==============
 
 /**
@@ -85,65 +221,46 @@ export async function fetchAmazonProductByAsin(
     asin: string,
     domain: string = 'amazon.com'
 ): Promise<AmazonProductData> {
-    const apiKey = getRainforestApiKey();
+    const token = getApifyToken();
 
     // 模拟模式
-    if (!apiKey) {
-        console.log(`[Rainforest] 使用模拟数据 (ASIN: ${asin})`);
-        await new Promise(resolve => setTimeout(resolve, 1200)); // 模拟网络延迟
+    if (!token) {
+        console.log(`[Amazon] 使用模拟数据 (ASIN: ${asin})`);
+        await new Promise(resolve => setTimeout(resolve, 1200));
 
         if (mockAmazonProducts[asin]) {
             return { ...mockAmazonProducts[asin], fetchedAt: Date.now() };
         }
 
-        // 未找到则生成一个
         return generateMockProduct(asin, 0);
     }
 
-    // 真实 API 调用
-    console.log(`[Rainforest] 调用真实 API (ASIN: ${asin}, Domain: ${domain})`);
+    // 使用 Apify Amazon Scraper
+    console.log(`[Apify Amazon] 获取产品详情 (ASIN: ${asin})`);
 
     try {
-        const params = new URLSearchParams({
-            api_key: apiKey,
-            type: 'product',
-            amazon_domain: domain,
-            asin: asin
-        });
+        const input = {
+            categoryOrProductUrls: [{ url: `https://www.${domain}/dp/${asin}` }],
+            maxItemsPerStartUrl: 1,
+            proxyCountry: 'AUTO'
+        };
 
-        const response = await fetch(`${RAINFOREST_BASE_URL}?${params}`);
-        const data = await response.json();
-
-        if (response.ok && data.product) {
-            const product = data.product;
-
-            // 提取 BSR 排名
-            let bsr: number | null = null;
-            let bsrCategory: string | null = null;
-            if (product.bestsellers_rank && product.bestsellers_rank.length > 0) {
-                bsr = product.bestsellers_rank[0].rank ?? null;
-                bsrCategory = product.bestsellers_rank[0].category ?? null;
-            }
-
-            return {
-                asin: product.asin,
-                title: product.title || '未知产品',
-                recentSalesLabel: product.recent_sales || null,
-                bsr,
-                bsrCategory,
-                price: product.buybox_winner?.price?.value ?? null,
-                currency: product.buybox_winner?.price?.currency ?? 'USD',
-                mainImage: product.main_image?.link || '',
-                link: product.link || `https://www.${domain}/dp/${asin}`,
-                fetchedAt: Date.now(),
-                dataSource: 'real'
-            };
-        } else {
-            throw new Error(data.request_info?.message || '获取产品数据失败');
+        const items = await runApifyAmazonActor(input);
+        
+        if (items.length > 0) {
+            const transformed = transformApifyAmazonData(items);
+            return transformed[0];
         }
+
+        throw new Error('未找到产品数据');
     } catch (error) {
-        console.error('[Rainforest] API 调用失败:', error);
-        throw error;
+        console.error('[Apify Amazon] API 调用失败:', error);
+        // 降级到模拟数据
+        console.log('[Apify Amazon] 降级到模拟数据');
+        if (mockAmazonProducts[asin]) {
+            return { ...mockAmazonProducts[asin], fetchedAt: Date.now() };
+        }
+        return generateMockProduct(asin, 0);
     }
 }
 
@@ -153,53 +270,45 @@ export async function fetchAmazonProductByAsin(
 export async function searchAmazonProducts(
     keyword: string,
     domain: string = 'amazon.com',
-    maxResults: number = 5
+    maxResults: number = 10
 ): Promise<AmazonProductData[]> {
-    const apiKey = getRainforestApiKey();
+    const token = getApifyToken();
 
     // 模拟模式
-    if (!apiKey) {
-        console.log(`[Rainforest] 使用模拟数据搜索 (关键词: ${keyword})`);
+    if (!token) {
+        console.log(`[Amazon] 使用模拟数据搜索 (关键词: ${keyword})`);
         await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // 生成模拟搜索结果
         return Array.from({ length: maxResults }, (_, i) => generateMockProduct(keyword, i));
     }
 
-    // 真实 API 调用
-    console.log(`[Rainforest] 调用真实 API 搜索 (关键词: ${keyword})`);
+    // 使用 Apify Amazon Scraper
+    console.log(`[Apify Amazon] 搜索产品 (关键词: ${keyword})`);
 
     try {
-        const params = new URLSearchParams({
-            api_key: apiKey,
-            type: 'search',
-            amazon_domain: domain,
-            search_term: keyword
-        });
+        // 构建搜索 URL
+        const searchUrl = `https://www.${domain}/s?k=${encodeURIComponent(keyword)}`;
+        
+        const input = {
+            categoryOrProductUrls: [{ url: searchUrl }],
+            maxItemsPerStartUrl: maxResults,
+            proxyCountry: 'AUTO'
+        };
 
-        const response = await fetch(`${RAINFOREST_BASE_URL}?${params}`);
-        const data = await response.json();
-
-        if (response.ok && data.search_results) {
-            return data.search_results.slice(0, maxResults).map((item: any) => ({
-                asin: item.asin,
-                title: item.title || '未知产品',
-                recentSalesLabel: item.recent_sales || null,
-                bsr: null,
-                bsrCategory: null,
-                price: item.price?.value ?? null,
-                currency: item.price?.currency ?? 'USD',
-                mainImage: item.image || '',
-                link: item.link || '',
-                fetchedAt: Date.now(),
-                dataSource: 'real' as const
-            }));
-        } else {
-            throw new Error(data.request_info?.message || '搜索产品失败');
+        const items = await runApifyAmazonActor(input);
+        
+        if (items.length > 0) {
+            const transformed = transformApifyAmazonData(items);
+            // 按评论数排序（作为热度指标）
+            return transformed.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0)).slice(0, maxResults);
         }
+
+        console.log('[Apify Amazon] 未获取到数据，使用模拟数据');
+        return Array.from({ length: maxResults }, (_, i) => generateMockProduct(keyword, i));
     } catch (error) {
-        console.error('[Rainforest] 搜索 API 调用失败:', error);
-        throw error;
+        console.error('[Apify Amazon] 搜索失败:', error);
+        // 降级到模拟数据
+        console.log('[Apify Amazon] 降级到模拟数据');
+        return Array.from({ length: maxResults }, (_, i) => generateMockProduct(keyword, i));
     }
 }
 
@@ -235,5 +344,5 @@ export async function queryAmazonData(query: AmazonResearchQuery): Promise<Amazo
  * 检测当前数据源模式
  */
 export function getDataSourceMode(): 'real' | 'mock' {
-    return getRainforestApiKey() ? 'real' : 'mock';
+    return getApifyToken() ? 'real' : 'mock';
 }

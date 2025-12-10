@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
-import { LayoutDashboard, Globe, Users, Scale, Network, Terminal, ShieldCheck, Command, CircleDashed, CheckCircle2, AlertCircle, Activity, PackageSearch, ChevronDown, ChevronRight, Flame, MessageSquare, PlusCircle, Sparkles, ExternalLink, TrendingUp, Clock, Loader, XCircle, BrainCircuit, ShoppingCart, Video, ShoppingBag } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LayoutDashboard, Globe, Users, Scale, Network, Terminal, ShieldCheck, Command, CircleDashed, CheckCircle2, AlertCircle, Activity, PackageSearch, ChevronDown, ChevronRight, Flame, MessageSquare, PlusCircle, Sparkles, ExternalLink, TrendingUp, Clock, Loader, XCircle, BrainCircuit, ShoppingCart, Video, ShoppingBag, DollarSign, RefreshCw, Wallet, CreditCard } from 'lucide-react';
 import { AgentType, MCPToolStatus, ProductCatalog, ResearchTask } from '../types';
+import { getApifyBillingInfo, ApifyBillingInfo, isApifyConfigured } from '../services/apifyUsageService';
 
 interface SidebarProps {
   activeAgent: AgentType;
@@ -19,11 +20,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, ag
     agentMatrix: true,
     marketResearch: true,
     researchTasksSub: true,
+    apiBilling: true,
     productCatalog: true,
     hotProducts: true,
     clientInquiries: false,
     opportunities: false,
   });
+
+  // Apify 资费状态
+  const [apifyBilling, setApifyBilling] = useState<ApifyBillingInfo | null>(null);
+  const [isLoadingBilling, setIsLoadingBilling] = useState(false);
+
+  // 加载 Apify 资费信息
+  const loadApifyBilling = async () => {
+    if (!isApifyConfigured()) return;
+    
+    setIsLoadingBilling(true);
+    try {
+      const billing = await getApifyBillingInfo();
+      setApifyBilling(billing);
+    } catch (error) {
+      console.error('加载 Apify 资费失败:', error);
+    } finally {
+      setIsLoadingBilling(false);
+    }
+  };
+
+  // 组件挂载时加载资费信息
+  useEffect(() => {
+    loadApifyBilling();
+    // 每 5 分钟自动刷新
+    const interval = setInterval(loadApifyBilling, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -228,6 +257,121 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, ag
                   <span className="text-xs font-bold text-gray-300">2. AI 智能综合分析</span>
                   <ChevronRight size={10} className="ml-auto text-gray-600" />
                 </button>
+              </div>
+
+              {/* 2.3 API 资费监控 (二级目录) */}
+              <div className="overflow-hidden rounded-lg bg-nexus-800/20 border border-nexus-800/50">
+                <button
+                  onClick={() => toggleSection('apiBilling')}
+                  className="w-full px-3 py-2 bg-nexus-800/30 border-b border-nexus-800/50 flex items-center gap-2 hover:bg-nexus-800/50 transition-colors"
+                >
+                  <Wallet size={12} className="text-green-400" />
+                  <span className="text-xs font-bold text-gray-300 flex-1 text-left">3. API 资费监控</span>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); loadApifyBilling(); }}
+                    className="p-1 hover:bg-nexus-700 rounded transition-colors"
+                    title="刷新资费"
+                  >
+                    <RefreshCw size={10} className={`text-gray-500 hover:text-green-400 ${isLoadingBilling ? 'animate-spin' : ''}`} />
+                  </button>
+                  {expandedSections.apiBilling ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                </button>
+
+                {expandedSections.apiBilling && (
+                  <div className="p-3 space-y-3 animate-in slide-in-from-top-1 duration-200">
+                    {/* Apify 资费卡片 */}
+                    {isApifyConfigured() ? (
+                      <div className="space-y-2">
+                        {/* 账户信息 */}
+                        {apifyBilling?.account && (
+                          <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                            <CreditCard size={10} className="text-blue-400" />
+                            <span>{apifyBilling.account.username}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[9px]">
+                              {apifyBilling.account.plan.name}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 使用进度条 */}
+                        {apifyBilling?.usage && (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-gray-400">本月额度</span>
+                              <span className="text-gray-300">
+                                ${apifyBilling.usage.costs.total.toFixed(2)} / ${apifyBilling.usage.limits.monthlyUsageUsd.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="h-2 bg-nexus-800 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  apifyBilling.usage.limits.usedPercentage > 80 
+                                    ? 'bg-red-500' 
+                                    : apifyBilling.usage.limits.usedPercentage > 50 
+                                      ? 'bg-yellow-500' 
+                                      : 'bg-green-500'
+                                }`}
+                                style={{ width: `${Math.min(100, apifyBilling.usage.limits.usedPercentage)}%` }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between text-[9px]">
+                              <span className="text-gray-500">
+                                已用 {apifyBilling.usage.limits.usedPercentage.toFixed(1)}%
+                              </span>
+                              <span className="text-green-400">
+                                剩余 ${apifyBilling.usage.limits.remainingUsd.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 使用明细 */}
+                        {apifyBilling?.usage && (
+                          <div className="pt-2 border-t border-nexus-800/50 space-y-1">
+                            <div className="text-[9px] text-gray-500 mb-1">使用明细</div>
+                            <div className="grid grid-cols-2 gap-1 text-[9px]">
+                              <div className="flex justify-between px-2 py-1 bg-nexus-800/30 rounded">
+                                <span className="text-gray-400">计算单元</span>
+                                <span className="text-gray-300">{apifyBilling.usage.usage.actorComputeUnits.toFixed(3)} CU</span>
+                              </div>
+                              <div className="flex justify-between px-2 py-1 bg-nexus-800/30 rounded">
+                                <span className="text-gray-400">数据传输</span>
+                                <span className="text-gray-300">{apifyBilling.usage.usage.dataTransferGb.toFixed(3)} GB</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 最后更新时间 */}
+                        {apifyBilling?.lastUpdated && (
+                          <div className="text-[9px] text-gray-600 text-right">
+                            更新于 {new Date(apifyBilling.lastUpdated).toLocaleTimeString('zh-CN')}
+                          </div>
+                        )}
+
+                        {/* 错误提示 */}
+                        {apifyBilling?.error && (
+                          <div className="text-[10px] text-red-400 bg-red-500/10 px-2 py-1 rounded">
+                            {apifyBilling.error}
+                          </div>
+                        )}
+
+                        {/* 加载中 */}
+                        {isLoadingBilling && !apifyBilling && (
+                          <div className="flex items-center justify-center py-4">
+                            <Loader size={16} className="text-green-400 animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-3">
+                        <DollarSign size={20} className="mx-auto text-gray-600 mb-2" />
+                        <p className="text-[10px] text-gray-500">未配置 Apify Token</p>
+                        <p className="text-[9px] text-gray-600 mt-1">在 .env 中设置 VITE_APIFY_TOKEN</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
             </div>

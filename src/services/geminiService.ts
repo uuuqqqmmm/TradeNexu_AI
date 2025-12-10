@@ -47,11 +47,17 @@ const responseSchema = {
           profitMargin: { type: Type.STRING },
           complianceNote: { type: Type.STRING },
           description: { type: Type.STRING },
-          imageUrl: { type: Type.STRING },
+          imageUrl: { type: Type.STRING, description: '产品主图URL（必须使用真实数据中的 main_image）' },
           tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-          // 新增字段
+          // 数据来源
           dataSource: { type: Type.STRING, enum: ['real', 'mock'], description: '数据来源：real=真实API, mock=模拟数据' },
-          amazonSearchUrl: { type: Type.STRING, description: '亚马逊搜索链接' },
+          // 产品链接（重要！）
+          productUrl: { type: Type.STRING, description: '产品详情页链接（如 https://www.amazon.com/dp/ASIN）' },
+          asin: { type: Type.STRING, description: 'Amazon ASIN 编码' },
+          price: { type: Type.STRING, description: '产品价格（如 $89.99）' },
+          salesVolume: { type: Type.STRING, description: '销量标签（如 5K+ bought in past month）' },
+          // 备用字段
+          amazonSearchUrl: { type: Type.STRING, description: '亚马逊搜索链接（备用）' },
           searchKeyword: { type: Type.STRING, description: '搜索关键词' }
         }
       }
@@ -194,7 +200,7 @@ export const generateTrendAnalysis = async (apiKey: string, query: string, histo
     上下文历史：
     ${historyContext}
 
-    【实时市场数据 (由 Market Intelligence Officer 通过 Rainforest API 获取)】:
+    【实时市场数据 (由 Market Intelligence Officer 通过 Apify Amazon Scraper 获取)】:
     ${toolContext}
 
     当前指令： "${query}"
@@ -202,25 +208,37 @@ export const generateTrendAnalysis = async (apiKey: string, query: string, histo
     【输出要求】:
     - 严格遵循 JSON Schema。
     - agentProtocolLogs 至少包含 4-6 个交互步骤。
+    - topProducts 只返回前 3 个最热销的产品（按销量/评论数排序）
     
     【重要 - 爆款排名与数据来源】:
     - 如果 toolContext 包含真实产品数据：
       1. 在 summary 中提及"已从 Amazon 获取真实数据"
-      2. topProducts 必须使用真实数据，按销量/BSR 排名
+      2. topProducts 必须使用真实数据中的前 3 个产品，按销量/评论数排名
       3. 每个产品的 dataSource 设置为 "real"
-      4. amazonSearchUrl 设置为: https://www.amazon.com/s?k={关键词}
-      5. searchKeyword 设置为用户的搜索关键词（英文）
-      6. 在 strategicAdvice 中分析热销原因和采购建议
+      4. 在 strategicAdvice 中分析热销原因和采购建议
     - 如果没有真实数据：
       1. 说明"使用模拟数据演示"
       2. 每个产品的 dataSource 设置为 "mock"
-      3. 同样生成 amazonSearchUrl 和 searchKeyword
     
-    【产品信息格式】:
-    - imageUrl: 使用数据中的 main_image，没有则用 "https://picsum.photos/400/300?random=X"
-    - trendScore: 根据销量标签推算 ("100+ bought" = 50-70, "1K+ bought" = 80-90, "5K+ bought" = 90+)
-    - amazonSearchUrl: 格式为 https://www.amazon.com/s?k=产品英文关键词（空格用+替换）
-    - searchKeyword: 产品的英文搜索关键词，如 "smart pet feeder"、"wireless earbuds"
+    【产品信息格式 - 极其重要！】:
+    从 toolContext 中的真实数据提取以下字段：
+    - id: 使用产品的 ASIN（如 "B0CF3VGQFL"）
+    - name: 使用 title 字段
+    - imageUrl: 【必须】使用 main_image 字段的真实图片URL（不要用 picsum.photos）
+    - productUrl: 【必须】使用 url 或 link 字段（格式如 https://www.amazon.com/dp/ASIN）
+    - asin: 产品的 ASIN 编码
+    - price: 使用 price 字段（格式如 "$89.99"）
+    - salesVolume: 使用 sales_volume 或 recentSalesLabel 字段
+    - trendScore: 根据评论数推算 (reviewCount > 10000 = 95, > 5000 = 85, > 1000 = 75, 其他 = 65)
+    - amazonSearchUrl: 备用，格式为 https://www.amazon.com/s?k=关键词
+    - searchKeyword: 用户的搜索关键词（英文）
+    
+    【示例】:
+    如果 toolContext 包含:
+    { "title": "PETLIBRO Automatic Cat Feeder", "main_image": "https://m.media-amazon.com/...", "url": "https://www.amazon.com/dp/B0CF3VGQFL", "price": "$89.99", "sales_volume": "5K+ bought" }
+    
+    则 topProducts 应包含:
+    { "id": "B0CF3VGQFL", "name": "PETLIBRO Automatic Cat Feeder", "imageUrl": "https://m.media-amazon.com/...", "productUrl": "https://www.amazon.com/dp/B0CF3VGQFL", "asin": "B0CF3VGQFL", "price": "$89.99", "salesVolume": "5K+ bought", ... }
   `;
 
   try {
