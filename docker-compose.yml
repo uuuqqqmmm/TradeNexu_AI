@@ -1,0 +1,132 @@
+# TradeNexus Station - Docker Compose 配置
+# 版本: v3.0
+# 用途: 单机全栈部署
+
+version: '3.8'
+
+services:
+  # ============================================
+  # 1. PostgreSQL 数据库
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: tradenexus_db
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tradenexus2024}
+      POSTGRES_DB: ${DB_NAME:-tradenexus}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./backend/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d tradenexus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tradenexus_network
+
+  # ============================================
+  # 2. Redis 消息队列
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: tradenexus_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - ./data/redis:/data
+    ports:
+      - "6379:6379"
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tradenexus_network
+
+  # ============================================
+  # 3. Nest.js 后端 API
+  # ============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tradenexus_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:-tradenexus2024}@postgres:5432/${DB_NAME:-tradenexus}
+      REDIS_URL: redis://redis:6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      APIFY_TOKEN: ${APIFY_TOKEN}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend/logs:/app/logs
+    restart: always
+    networks:
+      - tradenexus_network
+
+  # ============================================
+  # 4. 爬虫 Worker (后台任务处理)
+  # ============================================
+  crawler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    container_name: tradenexus_crawler
+    command: npm run worker:crawler
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:-tradenexus2024}@postgres:5432/${DB_NAME:-tradenexus}
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./data/screenshots:/app/screenshots
+    restart: always
+    networks:
+      - tradenexus_network
+
+  # ============================================
+  # 5. Nginx 前端托管 + 反向代理
+  # ============================================
+  frontend:
+    image: nginx:alpine
+    container_name: tradenexus_ui
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - tradenexus_network
+
+# ============================================
+# 网络配置
+# ============================================
+networks:
+  tradenexus_network:
+    driver: bridge
+
+# ============================================
+# 数据卷 (可选，用于命名卷)
+# ============================================
+# volumes:
+#   postgres_data:
+#   redis_data:

@@ -234,7 +234,7 @@ export const AmazonResearchDialog: React.FC<AmazonResearchDialogProps> = ({
                             <Loader2 size={32} className="mx-auto mb-4 animate-spin text-orange-500" />
                             <p className="text-gray-400">正在获取产品数据...</p>
                             <p className="text-xs text-gray-600 mt-2">
-                                {dataSourceMode === 'mock' ? '使用模拟数据' : '连接 Rainforest API'}
+                                {dataSourceMode === 'mock' ? '使用模拟数据' : '连接 Amazon API'}
                             </p>
                         </div>
                     )}
@@ -318,7 +318,7 @@ export const AmazonResearchDialog: React.FC<AmazonResearchDialogProps> = ({
                 {/* 底部提示 */}
                 <div className="px-6 py-3 border-t border-nexus-800 bg-nexus-900/50 text-center">
                     <p className="text-xs text-gray-500">
-                        数据来源：{dataSourceMode === 'real' ? 'Rainforest API (真实数据)' : '模拟数据 (配置 API Key 获取真实数据)'}
+                        数据来源：{dataSourceMode === 'real' ? 'Apify Amazon Scraper (真实数据)' : '模拟数据 (配置 API Key 获取真实数据)'}
                     </p>
                 </div>
             </div>

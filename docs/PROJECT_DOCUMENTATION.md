@@ -65,7 +65,7 @@
 | **构建工具** | Vite 5 |
 | **UI组件** | 自定义组件 + Lucide Icons |
 | **图表库** | Recharts |
-| **AI引擎** | Google Gemini 2.5 Flash |
+| **AI引擎** | Google Gemini 2.0 Flash |
 | **数据API** | Rainforest API (Amazon), TikTok API |
 | **样式方案** | TailwindCSS (自定义主题) |
 

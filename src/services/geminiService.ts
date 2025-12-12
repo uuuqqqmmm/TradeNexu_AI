@@ -258,8 +258,21 @@ export const generateTrendAnalysis = async (apiKey: string, query: string, histo
     console.log("📥 阶段 2: 收到 Gemini 响应");
     const text = response.text;
     if (!text) throw new Error("无法从 Gemini 获取响应");
-    console.log("✅ 阶段 2: JSON 解析成功");
-    return JSON.parse(text) as AnalysisResult;
+    
+    const result = JSON.parse(text) as AnalysisResult;
+    
+    // 后处理：如果 toolContext 包含真实数据，强制设置 dataSource 为 real
+    const hasRealData = toolContext.includes('"dataSource":"real"') || toolContext.includes('"dataSource": "real"');
+    if (hasRealData && result.topProducts) {
+      console.log("✅ 检测到真实数据，强制设置 dataSource: real");
+      result.topProducts = result.topProducts.map(p => ({
+        ...p,
+        dataSource: 'real' as const
+      }));
+    }
+    
+    console.log("✅ 阶段 2: JSON 解析成功，产品数据源:", result.topProducts?.[0]?.dataSource || 'unknown');
+    return result;
   } catch (error: any) {
     console.error("❌ Agentic 分析失败:", error);
     console.error("❌ 错误详情:", error?.message || error);

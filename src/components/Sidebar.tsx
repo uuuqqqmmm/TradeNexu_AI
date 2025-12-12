@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Globe, Users, Scale, Network, Terminal, ShieldCheck, Command, CircleDashed, CheckCircle2, AlertCircle, Activity, PackageSearch, ChevronDown, ChevronRight, Flame, MessageSquare, PlusCircle, Sparkles, ExternalLink, TrendingUp, Clock, Loader, XCircle, BrainCircuit, ShoppingCart, Video, ShoppingBag, DollarSign, RefreshCw, Wallet, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Globe, Users, Scale, Network, Terminal, ShieldCheck, Command, CircleDashed, CheckCircle2, AlertCircle, Activity, PackageSearch, ChevronDown, ChevronRight, Flame, MessageSquare, PlusCircle, Sparkles, ExternalLink, TrendingUp, Clock, Loader, XCircle, BrainCircuit, ShoppingCart, Video, ShoppingBag, DollarSign, RefreshCw, Wallet, CreditCard, Settings, Key, Calculator, Search, Truck } from 'lucide-react';
 import { AgentType, MCPToolStatus, ProductCatalog, ResearchTask } from '../types';
 import { getApifyBillingInfo, ApifyBillingInfo, isApifyConfigured } from '../services/apifyUsageService';
+import { getConfigStats } from '../services/apiConfigService';
 
 interface SidebarProps {
   activeAgent: AgentType;
@@ -13,19 +14,28 @@ interface SidebarProps {
   onSelectTask: (task: ResearchTask) => void;
   onOpenAmazonResearch?: () => void;  // Amazon 调研对话框回调
   onOpenTikTokResearch?: () => void;  // TikTok 调研对话框回调
+  onOpenApiConfig?: () => void;       // API 配置对话框回调
+  onOpenSourcingSearch?: () => void;  // 供应链搜索回调
+  onOpenProfitCalculator?: () => void; // 利润计算器回调
+  onOpenProductDashboard?: () => void; // 产品管理 Dashboard 回调
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, agentStatuses, catalogData, researchTasks, onSelectTask, onOpenAmazonResearch, onOpenTikTokResearch }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, agentStatuses, catalogData, researchTasks, onSelectTask, onOpenAmazonResearch, onOpenTikTokResearch, onOpenApiConfig, onOpenSourcingSearch, onOpenProfitCalculator, onOpenProductDashboard }) => {
   const [expandedSections, setExpandedSections] = useState({
-    agentMatrix: true,
-    marketResearch: true,
-    researchTasksSub: true,
-    apiBilling: true,
-    productCatalog: true,
-    hotProducts: true,
+    agentMatrix: false,
+    marketResearch: false,
+    researchTasksSub: false,
+    apiBilling: false,
+    productCatalog: false,
+    hotProducts: false,
     clientInquiries: false,
     opportunities: false,
+    systemConfig: false,
+    supplyChain: false,
   });
+
+  // API 配置统计
+  const [apiStats, setApiStats] = useState({ total: 0, configured: 0, required: 0, requiredConfigured: 0 });
 
   // Apify 资费状态
   const [apifyBilling, setApifyBilling] = useState<ApifyBillingInfo | null>(null);
@@ -46,12 +56,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, ag
     }
   };
 
-  // 组件挂载时加载资费信息
+  // 组件挂载时加载资费信息和 API 配置统计
   useEffect(() => {
     loadApifyBilling();
+    setApiStats(getConfigStats());
     // 每 5 分钟自动刷新
     const interval = setInterval(loadApifyBilling, 5 * 60 * 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  // 监听 API 配置变更
+  useEffect(() => {
+    const handleConfigChange = () => setApiStats(getConfigStats());
+    window.addEventListener('api-config-changed', handleConfigChange);
+    return () => window.removeEventListener('api-config-changed', handleConfigChange);
   }, []);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -394,6 +412,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, ag
 
           {expandedSections.productCatalog && (
             <div className="space-y-1 px-3 animate-in slide-in-from-top-1 duration-200">
+              {/* 产品管理中心入口 */}
+              <button
+                onClick={onOpenProductDashboard}
+                className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg transition-colors mb-2"
+              >
+                <PackageSearch size={14} />
+                <span className="font-medium flex-1 text-left">产品管理中心</span>
+                <span className="text-[10px] bg-cyan-500/20 px-1.5 py-0.5 rounded">Dashboard</span>
+              </button>
+
               <div className="overflow-hidden rounded-lg bg-nexus-800/20 border border-nexus-800/50">
                 <button onClick={() => toggleSection('hotProducts')} className="w-full px-3 py-2 flex items-center gap-2 text-xs text-gray-300 hover:bg-nexus-800/40 transition-colors">
                   <Flame size={14} className="text-orange-500" />
@@ -461,6 +489,105 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeAgent, onSelectAgent, ag
                   </div>
                 )}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* 4. 供应链工具 */}
+        <div>
+          <button
+            onClick={() => toggleSection('supplyChain')}
+            className="w-full px-6 mb-2 text-sm font-bold text-gray-500 uppercase tracking-wider flex justify-between items-center hover:text-gray-300 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span>供应链工具</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Truck size={14} className="text-gray-600" />
+              {expandedSections.supplyChain ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            </div>
+          </button>
+
+          {expandedSections.supplyChain && (
+            <div className="px-3 space-y-2 animate-in slide-in-from-top-1 duration-200">
+              {/* 1688 货源搜索 */}
+              <button
+                onClick={onOpenSourcingSearch}
+                className="w-full flex items-center gap-3 p-3 bg-gradient-to-r from-orange-500/10 to-transparent hover:from-orange-500/20 border border-orange-500/30 hover:border-orange-500/50 rounded-lg transition-all group"
+              >
+                <div className="p-1.5 rounded-md bg-orange-500/20 group-hover:bg-orange-500/30 transition-colors">
+                  <Search size={16} className="text-orange-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-medium text-gray-200 group-hover:text-orange-400 transition-colors">1688 货源搜索</div>
+                  <div className="text-[10px] text-gray-500">搜索供应商、以图搜图</div>
+                </div>
+                <ChevronRight size={14} className="text-gray-600 group-hover:text-orange-400 group-hover:translate-x-0.5 transition-all" />
+              </button>
+
+              {/* 利润计算器 */}
+              <button
+                onClick={onOpenProfitCalculator}
+                className="w-full flex items-center gap-3 p-3 bg-gradient-to-r from-green-500/10 to-transparent hover:from-green-500/20 border border-green-500/30 hover:border-green-500/50 rounded-lg transition-all group"
+              >
+                <div className="p-1.5 rounded-md bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                  <Calculator size={16} className="text-green-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-medium text-gray-200 group-hover:text-green-400 transition-colors">利润计算器</div>
+                  <div className="text-[10px] text-gray-500">成本核算、利润试算</div>
+                </div>
+                <ChevronRight size={14} className="text-gray-600 group-hover:text-green-400 group-hover:translate-x-0.5 transition-all" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 5. 系统配置 */}
+        <div>
+          <button
+            onClick={() => toggleSection('systemConfig')}
+            className="w-full px-6 mb-2 text-sm font-bold text-gray-500 uppercase tracking-wider flex justify-between items-center hover:text-gray-300 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span>系统配置</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Settings size={14} className="text-gray-600" />
+              {expandedSections.systemConfig ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            </div>
+          </button>
+
+          {expandedSections.systemConfig && (
+            <div className="px-3 space-y-2 animate-in slide-in-from-top-1 duration-200">
+              {/* API 接口配置 */}
+              <button
+                onClick={onOpenApiConfig}
+                className="w-full flex items-center gap-3 p-3 bg-gradient-to-r from-indigo-500/10 to-transparent hover:from-indigo-500/20 border border-indigo-500/30 hover:border-indigo-500/50 rounded-lg transition-all group"
+              >
+                <div className="p-1.5 rounded-md bg-indigo-500/20 group-hover:bg-indigo-500/30 transition-colors">
+                  <Key size={16} className="text-indigo-400" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-medium text-gray-200 group-hover:text-indigo-400 transition-colors">API 接口配置</div>
+                  <div className="text-[10px] text-gray-500">
+                    已配置 {apiStats.configured}/{apiStats.total} 个接口
+                    {apiStats.requiredConfigured < apiStats.required && (
+                      <span className="ml-1 text-yellow-500">
+                        (缺少 {apiStats.required - apiStats.requiredConfigured} 个必需)
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {apiStats.requiredConfigured === apiStats.required ? (
+                    <CheckCircle2 size={14} className="text-green-500" />
+                  ) : (
+                    <AlertCircle size={14} className="text-yellow-500" />
+                  )}
+                  <ChevronRight size={14} className="text-gray-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
+                </div>
+              </button>
             </div>
           )}
         </div>

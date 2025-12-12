@@ -172,3 +172,88 @@ export const AMAZON_DOMAINS = [
   { label: '日本站 (amazon.co.jp)', value: 'amazon.co.jp' },
   { label: '加拿大站 (amazon.ca)', value: 'amazon.ca' },
 ] as const;
+
+// ============================================
+// v3.0 新增类型定义
+// ============================================
+
+// 供应链货源信息 (1688)
+export interface SourcingInfo {
+  id?: string;
+  supplierUrl: string;
+  supplierName: string;
+  costPrice: number;
+  currency: string;
+  moq: number;              // 最小起订量
+  supplierRating: number;
+  shopYears?: number;       // 开店年限
+  matchScore: number;       // AI 匹配度 0-1
+  imageUrl: string;
+}
+
+// 合规检查结果
+export interface ComplianceCheck {
+  id?: string;
+  market: 'US' | 'EU' | 'SEA' | 'AU';
+  hsCode?: string;
+  taxRate?: number;
+  certificationsRequired: string[];  // ['FDA', 'CE', 'CPC']
+  riskLevel: 'low' | 'medium' | 'high';
+  notes: string;
+}
+
+// 利润计算结果
+export interface ProfitCalculation {
+  sellPrice: number;        // 售价 (USD)
+  costPrice: number;        // 采购价 (CNY)
+  shippingCost: number;     // 运费 (CNY)
+  platformFee: number;      // 平台佣金 (CNY)
+  fbaFee: number;           // FBA 费用 (CNY)
+  marketingCost: number;    // 广告费 (CNY)
+  netProfit: number;        // 净利润 (CNY)
+  profitMargin: number;     // 利润率 (%)
+  exchangeRate: number;     // 汇率
+}
+
+// 扩展 AnalysisResult 接口 (v3.0)
+export interface AnalysisResultV3 extends AnalysisResult {
+  sourcingInfo?: SourcingInfo[];      // 供应链数据
+  complianceCheck?: ComplianceCheck;  // 合规检查
+  profitCalculation?: ProfitCalculation; // 利润计算
+}
+
+// 后台任务类型
+export type JobType = 'AMAZON_SEARCH' | '1688_FIND' | 'PROFIT_CALC' | 'COMPLIANCE_CHECK' | 'AI_ANALYSIS';
+export type JobStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+// 后台任务
+export interface Job {
+  id: string;
+  userId: string;
+  type: JobType;
+  status: JobStatus;
+  progress: number;         // 0-100
+  inputData?: any;
+  outputData?: any;
+  errorMessage?: string;
+  startedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
+// 供应商收藏
+export interface Supplier {
+  id: string;
+  platform: '1688' | 'alibaba';
+  supplierUrl: string;
+  supplierName: string;
+  contactInfo?: {
+    wechat?: string;
+    phone?: string;
+    qq?: string;
+  };
+  rating?: number;
+  notes?: string;
+  tags: string[];
+  createdAt: string;
+}

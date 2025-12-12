@@ -1,19 +1,28 @@
 /**
- * Amazon 数据服务 (Apify Amazon Scraper)
- * 用于获取亚马逊产品数据
+ * Amazon 数据服务
+ * 通过后端 API 代理调用 Apify，避免 CORS 问题
  * 
  * 配置说明:
- * - 使用 Apify Amazon Scraper Actor
- * - 需要配置 VITE_APIFY_TOKEN
+ * - 后端需要配置 APIFY_TOKEN 或 VITE_APIFY_TOKEN
+ * - 前端通过 /api/amazon/* 端点获取数据
  */
 
 import { AmazonProductData, AmazonResearchQuery } from '../types';
 
-// Apify API 配置
-const APIFY_BASE_URL = 'https://api.apify.com/v2';
-const AMAZON_SCRAPER_ACTOR_ID = 'junglee~amazon-scraper'; // Apify Amazon Scraper Actor
+// 后端 API 地址
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-// 获取 Apify Token
+// 检查后端 Amazon API 是否可用
+const checkBackendAvailable = async (): Promise<boolean> => {
+    try {
+        const response = await fetch(`${API_BASE}/amazon/status`, { method: 'GET' });
+        return response.ok;
+    } catch {
+        return false;
+    }
+};
+
+// 获取 Apify Token (用于判断是否使用模拟数据)
 const getApifyToken = (): string | null => {
     const token = import.meta.env.VITE_APIFY_TOKEN;
     return token && token !== 'your_apify_token_here' ? token : null;
@@ -266,50 +275,53 @@ export async function fetchAmazonProductByAsin(
 
 /**
  * 根据关键词搜索亚马逊产品
+ * 优先通过后端 API 调用，避免 CORS 问题
  */
 export async function searchAmazonProducts(
     keyword: string,
     domain: string = 'amazon.com',
     maxResults: number = 10
 ): Promise<AmazonProductData[]> {
-    const token = getApifyToken();
+    console.log(`[Amazon] 搜索产品 (关键词: ${keyword})`);
 
-    // 模拟模式
-    if (!token) {
-        console.log(`[Amazon] 使用模拟数据搜索 (关键词: ${keyword})`);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        return Array.from({ length: maxResults }, (_, i) => generateMockProduct(keyword, i));
-    }
-
-    // 使用 Apify Amazon Scraper
-    console.log(`[Apify Amazon] 搜索产品 (关键词: ${keyword})`);
-
+    // 优先尝试后端 API
     try {
-        // 构建搜索 URL
-        const searchUrl = `https://www.${domain}/s?k=${encodeURIComponent(keyword)}`;
-        
-        const input = {
-            categoryOrProductUrls: [{ url: searchUrl }],
-            maxItemsPerStartUrl: maxResults,
-            proxyCountry: 'AUTO'
-        };
-
-        const items = await runApifyAmazonActor(input);
-        
-        if (items.length > 0) {
-            const transformed = transformApifyAmazonData(items);
-            // 按评论数排序（作为热度指标）
-            return transformed.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0)).slice(0, maxResults);
+        const backendAvailable = await checkBackendAvailable();
+        if (backendAvailable) {
+            console.log('[Amazon] 通过后端 API 获取数据');
+            const response = await fetch(`${API_BASE}/amazon/search?keyword=${encodeURIComponent(keyword)}&limit=${maxResults}`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.products?.length > 0) {
+                    console.log(`[Amazon] 后端返回 ${data.products.length} 条数据，数据源: ${data.dataSource}`);
+                    // 转换后端数据格式
+                    return data.products.map((p: any) => ({
+                        asin: p.asin,
+                        title: p.title,
+                        recentSalesLabel: p.recentSalesLabel,
+                        bsr: p.bsr,
+                        bsrCategory: p.bsrCategory,
+                        price: p.price,
+                        currency: p.currency || 'USD',
+                        mainImage: p.mainImage,
+                        link: p.link,
+                        fetchedAt: p.fetchedAt || Date.now(),
+                        dataSource: p.dataSource,
+                        rating: p.rating,
+                        reviewCount: p.reviewCount,
+                    }));
+                }
+            }
         }
-
-        console.log('[Apify Amazon] 未获取到数据，使用模拟数据');
-        return Array.from({ length: maxResults }, (_, i) => generateMockProduct(keyword, i));
     } catch (error) {
-        console.error('[Apify Amazon] 搜索失败:', error);
-        // 降级到模拟数据
-        console.log('[Apify Amazon] 降级到模拟数据');
-        return Array.from({ length: maxResults }, (_, i) => generateMockProduct(keyword, i));
+        console.warn('[Amazon] 后端 API 调用失败，降级到本地模拟数据:', error);
     }
+
+    // 降级到本地模拟数据
+    console.log(`[Amazon] 使用模拟数据搜索 (关键词: ${keyword})`);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return Array.from({ length: maxResults }, (_, i) => generateMockProduct(keyword, i));
 }
 
 /**

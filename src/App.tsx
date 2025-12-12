@@ -7,6 +7,10 @@ import { MCPLiveLog } from './components/MCPLiveLog';
 import { ThinkingChain } from './components/ThinkingChain';
 import { AmazonResearchDialog } from './components/AmazonResearchDialog';
 import { TikTokResearchDialog } from './components/TikTokResearchDialog';
+import { ApiConfigDialog } from './components/ApiConfigDialog';
+import { ProfitCalculator } from './components/ProfitCalculator';
+import { SourcingSearch } from './components/SourcingSearch';
+import { ProductDashboard } from './components/ProductDashboard';
 import { generateTrendAnalysis } from './services/geminiService';
 import { AgentType, Message, MCPLog, MCPToolStatus, AgentProtocolEvent, ProductCatalog, ResearchTask, AmazonProductData } from './types';
 import { TikTokProductData } from './services/tiktokService';
@@ -52,6 +56,32 @@ export const App: React.FC = () => {
 
   // TikTok 调研对话框状态
   const [isTikTokDialogOpen, setIsTikTokDialogOpen] = useState(false);
+
+  // API 配置对话框状态
+  const [isApiConfigDialogOpen, setIsApiConfigDialogOpen] = useState(false);
+
+  // 利润计算器状态
+  const [isProfitCalculatorOpen, setIsProfitCalculatorOpen] = useState(false);
+  const [profitCalculatorData, setProfitCalculatorData] = useState<{ sellPrice?: number; costPrice?: number; productName?: string }>({});
+
+  // 供应链搜索状态
+  const [isSourcingSearchOpen, setIsSourcingSearchOpen] = useState(false);
+  const [sourcingSearchData, setSourcingSearchData] = useState<{ keyword?: string; amazonPrice?: number }>({});
+
+  // 产品管理 Dashboard 状态
+  const [isProductDashboardOpen, setIsProductDashboardOpen] = useState(false);
+
+  // 打开利润计算器
+  const openProfitCalculator = (costPrice?: number, sellPrice?: number, productName?: string) => {
+    setProfitCalculatorData({ costPrice, sellPrice, productName });
+    setIsProfitCalculatorOpen(true);
+  };
+
+  // 打开供应链搜索
+  const openSourcingSearch = (keyword?: string, amazonPrice?: number) => {
+    setSourcingSearchData({ keyword, amazonPrice });
+    setIsSourcingSearchOpen(true);
+  };
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -170,7 +200,7 @@ export const App: React.FC = () => {
       await addSystemLog('AI总管', '意图识别与任务规划中...', MCPToolStatus.RUNNING);
 
       const apiKey = process.env.API_KEY;
-      if (!apiKey) throw new Error("API Key not found");
+      if (!apiKey) throw new Error("Gemini API Key 未配置，请在 .env 文件中设置 API_KEY");
 
       // 2. 调用 API (获取完整分析结果，包含模拟的通信日志)
       const analysisData = await generateTrendAnalysis(apiKey, currentQuery, chatHistory);
@@ -217,15 +247,26 @@ export const App: React.FC = () => {
       };
       setChatHistory(prev => [...prev, aiMsg]);
 
-    } catch (error) {
-      console.error(error);
-      await addSystemLog('SYSTEM', '通信链路异常', MCPToolStatus.ERROR);
+    } catch (error: any) {
+      console.error('分析失败:', error);
+      const errorMessage = error?.message || '未知错误';
+      await addSystemLog('SYSTEM', `请求失败: ${errorMessage}`, MCPToolStatus.ERROR);
       setAgentStatuses(prev => ({ ...prev, [AgentType.GENERAL_MANAGER]: MCPToolStatus.ERROR }));
+
+      // 根据错误类型显示不同的提示
+      let userMessage = "报告指挥官：军团通信网络出现波动，请稍后重试。";
+      if (errorMessage.includes('API Key')) {
+        userMessage = "⚠️ 系统配置错误：Gemini API Key 未配置。请在 .env 文件中设置 VITE_GEMINI_API_KEY";
+      } else if (errorMessage.includes('429') || errorMessage.includes('quota')) {
+        userMessage = "⚠️ API 配额超限：请稍后重试或检查您的 Gemini API 配额";
+      } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
+        userMessage = "⚠️ API 认证失败：请检查您的 Gemini API Key 是否有效";
+      }
 
       const errorMsg: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: "报告指挥官：军团通信网络出现波动，请稍后重试。",
+        content: userMessage,
         timestamp: Date.now()
       };
       setChatHistory(prev => [...prev, errorMsg]);
@@ -268,6 +309,10 @@ export const App: React.FC = () => {
         onSelectTask={handleSelectTask}
         onOpenAmazonResearch={() => setIsAmazonDialogOpen(true)}
         onOpenTikTokResearch={() => setIsTikTokDialogOpen(true)}
+        onOpenApiConfig={() => setIsApiConfigDialogOpen(true)}
+        onOpenSourcingSearch={() => openSourcingSearch()}
+        onOpenProfitCalculator={() => openProfitCalculator()}
+        onOpenProductDashboard={() => setIsProductDashboardOpen(true)}
       />
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -436,6 +481,33 @@ export const App: React.FC = () => {
         isOpen={isTikTokDialogOpen}
         onClose={() => setIsTikTokDialogOpen(false)}
       />
+
+      {/* API 配置对话框 */}
+      <ApiConfigDialog
+        isOpen={isApiConfigDialogOpen}
+        onClose={() => setIsApiConfigDialogOpen(false)}
+      />
+
+      {/* 利润计算器 */}
+      <ProfitCalculator
+        isOpen={isProfitCalculatorOpen}
+        onClose={() => setIsProfitCalculatorOpen(false)}
+        initialData={profitCalculatorData}
+      />
+
+      {/* 供应链搜索 */}
+      <SourcingSearch
+        isOpen={isSourcingSearchOpen}
+        onClose={() => setIsSourcingSearchOpen(false)}
+        initialKeyword={sourcingSearchData.keyword}
+        amazonPrice={sourcingSearchData.amazonPrice}
+        onOpenCalculator={(costPrice, sellPrice) => openProfitCalculator(costPrice, sellPrice)}
+      />
+
+      {/* 产品管理 Dashboard */}
+      {isProductDashboardOpen && (
+        <ProductDashboard onClose={() => setIsProductDashboardOpen(false)} />
+      )}
     </div>
   );
 };
