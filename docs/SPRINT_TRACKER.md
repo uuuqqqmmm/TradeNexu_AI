@@ -64,10 +64,10 @@
 | 3.3.1 | Products 表 CRUD | 🔄 Mock 完成 | - | 前后端联调 |
 | 3.3.2 | SourcingResults 关联 | ⬜ 待开始 | - | 货源存储 |
 | 3.3.3 | 利润试算器 UI | ✅ 完成 | - | `ProfitCalculator.tsx` |
-| 3.3.4 | 产品详情页 | ⬜ 待开始 | - | 新页面 |
+| 3.3.4 | 产品详情页 | ✅ 完成 | - | `ProductDetailPage.tsx` |
 | 3.3.5 | Dashboard 看板 | ✅ 完成 | - | `ProductDashboard.tsx` |
 
-**Sprint 3 进度**: 50%
+**Sprint 3 进度**: 70%
 
 ---
 

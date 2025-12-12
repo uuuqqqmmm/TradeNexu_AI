@@ -11,6 +11,7 @@ import { ApiConfigDialog } from './components/ApiConfigDialog';
 import { ProfitCalculator } from './components/ProfitCalculator';
 import { SourcingSearch } from './components/SourcingSearch';
 import { ProductDashboard } from './components/ProductDashboard';
+import { ProductDetailPage } from './components/ProductDetailPage';
 import { generateTrendAnalysis } from './services/geminiService';
 import { AgentType, Message, MCPLog, MCPToolStatus, AgentProtocolEvent, ProductCatalog, ResearchTask, AmazonProductData } from './types';
 import { TikTokProductData } from './services/tiktokService';
@@ -70,6 +71,9 @@ export const App: React.FC = () => {
 
   // 产品管理 Dashboard 状态
   const [isProductDashboardOpen, setIsProductDashboardOpen] = useState(false);
+
+  // 产品详情页状态
+  const [selectedProduct, setSelectedProduct] = useState<AmazonProductData | null>(null);
 
   // 打开利润计算器
   const openProfitCalculator = (costPrice?: number, sellPrice?: number, productName?: string) => {
@@ -474,6 +478,10 @@ export const App: React.FC = () => {
         isOpen={isAmazonDialogOpen}
         onClose={() => setIsAmazonDialogOpen(false)}
         onProductsFound={handleAmazonProductsFound}
+        onProductClick={(product) => {
+          setSelectedProduct(product);
+          setIsAmazonDialogOpen(false);
+        }}
       />
 
       {/* TikTok 调研对话框 */}
@@ -507,6 +515,16 @@ export const App: React.FC = () => {
       {/* 产品管理 Dashboard */}
       {isProductDashboardOpen && (
         <ProductDashboard onClose={() => setIsProductDashboardOpen(false)} />
+      )}
+
+      {/* 产品详情页 */}
+      {selectedProduct && (
+        <div className="fixed inset-0 z-50">
+          <ProductDetailPage
+            product={selectedProduct}
+            onBack={() => setSelectedProduct(null)}
+          />
+        </div>
       )}
     </div>
   );

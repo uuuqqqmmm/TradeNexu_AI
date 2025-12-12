@@ -7,12 +7,14 @@ interface AmazonResearchDialogProps {
     isOpen: boolean;
     onClose: () => void;
     onProductsFound?: (products: AmazonProductData[]) => void;
+    onProductClick?: (product: AmazonProductData) => void;
 }
 
 export const AmazonResearchDialog: React.FC<AmazonResearchDialogProps> = ({
     isOpen,
     onClose,
-    onProductsFound
+    onProductsFound,
+    onProductClick
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDomain, setSelectedDomain] = useState('amazon.com');
@@ -250,7 +252,8 @@ export const AmazonResearchDialog: React.FC<AmazonResearchDialogProps> = ({
                             {searchResults.map((product) => (
                                 <div
                                     key={product.asin}
-                                    className="flex gap-4 p-4 bg-nexus-800/50 border border-nexus-700 rounded-xl hover:border-orange-500/30 transition-colors group"
+                                    onClick={() => onProductClick?.(product)}
+                                    className="flex gap-4 p-4 bg-nexus-800/50 border border-nexus-700 rounded-xl hover:border-orange-500/30 transition-colors group cursor-pointer"
                                 >
                                     {/* 产品图片 */}
                                     <div className="w-24 h-24 rounded-lg overflow-hidden bg-nexus-700 shrink-0">

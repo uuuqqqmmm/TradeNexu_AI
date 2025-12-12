@@ -272,86 +272,84 @@ export class AmazonService {
   }
 
   /**
-   * 搜索 Amazon 产品 - 优先使用 RapidAPI，备用 Apify
+   * 搜索 Amazon 产品 - 仅使用 RapidAPI (Apify 已禁用)
    */
   async searchProducts(keyword: string, maxResults: number = 10): Promise<AmazonProduct[]> {
     this.logger.log(`搜索 Amazon 产品: ${keyword}`);
 
-    // 1. 优先尝试 RapidAPI
+    // 使用 RapidAPI Real-Time Amazon Data
     const rapidApiResults = await this.searchViaRapidApi(keyword, maxResults);
     if (rapidApiResults && rapidApiResults.length > 0) {
       return rapidApiResults;
     }
 
-    // 2. 备用：Apify 官方 amazon-scraper (按计算资源付费)
-    const apifyToken = this.getApifyToken();
-    if (apifyToken) {
-      try {
-        // jupri/amazon-explorer: 支持关键词搜索
-        const input = {
-          keyword: keyword,
-          maxResults: Math.min(maxResults, 5), // 限制数量节省额度
-          country: 'US',
-        };
-        const items = await this.runApifyActor(input);
-
-        if (items.length > 0) {
-          const transformed = this.transformApifyData(items);
-          return transformed.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0)).slice(0, maxResults);
-        }
-      } catch (error) {
-        this.logger.error('Apify 搜索失败:', error);
-      }
-    }
-
-    // 3. 降级到模拟数据
-    this.logger.warn(`使用模拟数据 (关键词: ${keyword})`);
+    // Apify 已禁用，直接降级到模拟数据
+    this.logger.warn(`RapidAPI 失败，使用模拟数据 (关键词: ${keyword})`);
     await new Promise(resolve => setTimeout(resolve, 500));
     return Array.from({ length: maxResults }, (_, i) => this.generateMockProduct(keyword, i));
   }
 
   /**
-   * 获取产品详情
+   * 获取产品详情 - 仅使用 RapidAPI (Apify 已禁用)
    */
   async getProductByAsin(asin: string): Promise<AmazonProduct> {
-    const token = this.getApifyToken();
-
-    if (!token) {
-      this.logger.warn(`使用模拟数据 (ASIN: ${asin})`);
-      return this.generateMockProduct(asin, 0);
-    }
-
     this.logger.log(`获取产品详情: ${asin}`);
+    
+    // 使用 RapidAPI 获取产品详情
+    const apiKey = this.getRapidApiKey();
+    if (apiKey) {
+      try {
+        const url = `${RAPIDAPI_BASE_URL}/product-details?asin=${asin}&country=US`;
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'x-rapidapi-key': apiKey,
+            'x-rapidapi-host': RAPIDAPI_HOST,
+          },
+        });
 
-    try {
-      // epctex/amazon-scraper 使用 startUrls 参数获取产品详情
-      const input = {
-        startUrls: [`https://www.amazon.com/dp/${asin}`],
-        maxItems: 1,
-        proxy: {
-          useApifyProxy: true,
-        },
-      };
-
-      const items = await this.runApifyActor(input);
-
-      if (items.length > 0) {
-        return this.transformApifyData(items)[0];
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'OK' && data.data) {
+            const item = data.data;
+            let price: number | null = null;
+            if (item.product_price) {
+              const priceMatch = item.product_price.match(/[\d.]+/);
+              price = priceMatch ? parseFloat(priceMatch[0]) : null;
+            }
+            return {
+              asin: item.asin || asin,
+              title: item.product_title || '未知产品',
+              price,
+              currency: 'USD',
+              mainImage: item.product_photo || item.product_photos?.[0] || `https://picsum.photos/400/400?random=${asin}`,
+              link: item.product_url || `https://www.amazon.com/dp/${asin}`,
+              rating: item.product_star_rating ? parseFloat(item.product_star_rating) : null,
+              reviewCount: item.product_num_ratings || 0,
+              recentSalesLabel: item.sales_volume || null,
+              bsr: null,
+              bsrCategory: item.product_category || null,
+              dataSource: 'real' as const,
+              fetchedAt: Date.now(),
+            };
+          }
+        }
+      } catch (error) {
+        this.logger.error('[RapidAPI] 获取详情失败:', error);
       }
-
-      return this.generateMockProduct(asin, 0);
-    } catch (error) {
-      this.logger.error('获取详情失败:', error);
-      return this.generateMockProduct(asin, 0);
     }
+
+    // 降级到模拟数据
+    this.logger.warn(`使用模拟数据 (ASIN: ${asin})`);
+    return this.generateMockProduct(asin, 0);
   }
 
   /**
    * 检查数据源模式
    */
   getDataSourceMode(): 'real' | 'mock' {
-    // 优先检查 RapidAPI，其次 Apify
-    return (this.getRapidApiKey() || this.getApifyToken()) ? 'real' : 'mock';
+    // 仅检查 RapidAPI (Apify 已禁用)
+    return this.getRapidApiKey() ? 'real' : 'mock';
   }
 
   /**
