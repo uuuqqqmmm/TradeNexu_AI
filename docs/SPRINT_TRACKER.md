@@ -51,8 +51,11 @@
 | 3.2.7 | 后端 Alibaba1688Service | ✅ 完成 | - | Mock + 框架 |
 | 3.2.8 | BullMQ QueueService | ✅ 完成 | - | 离线模式支持 |
 | 3.2.9 | 队列状态 API | ✅ 完成 | - | `/jobs/queue/stats` |
+| 3.2.10 | **Amazon 真实数据 API** | ✅ 完成 | - | RapidAPI Real-Time Amazon Data |
+| 3.2.11 | 后端 Amazon Service | ✅ 完成 | - | 搜索 + 产品详情 |
+| 3.2.12 | 前端数据源标记 | ✅ 完成 | - | 真实/模拟 标签 |
 
-**Sprint 2 进度**: 80%
+**Sprint 2 进度**: 95%
 
 ### Sprint 3: 业务闭环与持久化 (Week 5-6)
 
@@ -130,6 +133,13 @@
 - 定义数据库 Schema
 - 创建所有核心模块占位代码
 
+### 2024-12-12 Amazon 真实数据集成
+- ✅ 集成 RapidAPI Real-Time Amazon Data API
+- ✅ 后端 Amazon Service 支持搜索和产品详情
+- ✅ 前端数据源标记（真实/模拟）
+- ✅ 环境变量配置 (RAPIDAPI_KEY)
+- 📌 API 免费额度: 100次/月
+
 ---
 
 ## 🔗 相关链接
@@ -137,6 +147,7 @@
 - [开发路线图](./DEVELOPMENT_ROADMAP_V3.md)
 - [项目文档 v2.0](./PROJECT_DOCUMENTATION.md)
 - [API 文档](http://localhost:3000/api/docs) (后端启动后可访问)
+- [RapidAPI Amazon](https://rapidapi.com/letscrape-6bRBa3QguO5/api/real-time-amazon-data)
 
 ---
 
