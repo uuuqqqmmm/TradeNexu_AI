@@ -1,7 +1,7 @@
 # TradeNexus AI - 外贸人工智能军团 开发文档
 
-> 📅 文档创建日期: 2024年12月11日  
-> 📦 项目版本: v2.0  
+> 📅 文档创建日期: 2024年12月11日
+> 📦 项目版本: v2.0
 > 🔗 GitHub: https://github.com/uuuqqqmmm/TradeNexu_AI
 
 ---
@@ -59,15 +59,15 @@
 
 ### 1.3 技术栈
 
-| 层级 | 技术选型 |
-|------|----------|
-| **前端框架** | React 18 + TypeScript |
-| **构建工具** | Vite 5 |
-| **UI组件** | 自定义组件 + Lucide Icons |
-| **图表库** | Recharts |
-| **AI引擎** | Google Gemini 2.0 Flash |
-| **数据API** | Rainforest API (Amazon), TikTok API |
-| **样式方案** | TailwindCSS (自定义主题) |
+| 层级               | 技术选型                            |
+| ------------------ | ----------------------------------- |
+| **前端框架** | React 18 + TypeScript               |
+| **构建工具** | Vite 5                              |
+| **UI组件**   | 自定义组件 + Lucide Icons           |
+| **图表库**   | Recharts                            |
+| **AI引擎**   | Google Gemini 2.0 Flash             |
+| **数据API**  | Rainforest API (Amazon), TikTok API |
+| **样式方案** | TailwindCSS (自定义主题)            |
 
 ---
 
@@ -75,40 +75,40 @@
 
 ### 2.1 核心功能需求
 
-| 序号 | 开发指令 | 优先级 | 状态 |
-|------|----------|--------|------|
-| 1 | 构建外贸AI军团多智能体架构 | P0 | ✅ 已完成 |
-| 2 | 实现AI总管任务调度与意图识别 | P0 | ✅ 已完成 |
-| 3 | 集成Google Gemini API进行智能分析 | P0 | ✅ 已完成 |
-| 4 | 开发市场情报官模块 - 产品趋势分析 | P0 | ✅ 已完成 |
-| 5 | 实现Amazon产品数据调研功能 | P1 | ✅ 已完成 |
-| 6 | 实现TikTok Shop产品调研功能 | P1 | ✅ 已完成 |
-| 7 | 开发AliExpress价格对比与利润计算 | P1 | ✅ 已完成 |
-| 8 | 构建Agent间通信协议可视化 | P1 | ✅ 已完成 |
-| 9 | 实现思维链(Chain of Thought)展示 | P2 | ✅ 已完成 |
-| 10 | 开发产品资源库管理功能 | P2 | ✅ 已完成 |
+| 序号 | 开发指令                          | 优先级 | 状态      |
+| ---- | --------------------------------- | ------ | --------- |
+| 1    | 构建外贸AI军团多智能体架构        | P0     | ✅ 已完成 |
+| 2    | 实现AI总管任务调度与意图识别      | P0     | ✅ 已完成 |
+| 3    | 集成Google Gemini API进行智能分析 | P0     | ✅ 已完成 |
+| 4    | 开发市场情报官模块 - 产品趋势分析 | P0     | ✅ 已完成 |
+| 5    | 实现Amazon产品数据调研功能        | P1     | ✅ 已完成 |
+| 6    | 实现TikTok Shop产品调研功能       | P1     | ✅ 已完成 |
+| 7    | 开发AliExpress价格对比与利润计算  | P1     | ✅ 已完成 |
+| 8    | 构建Agent间通信协议可视化         | P1     | ✅ 已完成 |
+| 9    | 实现思维链(Chain of Thought)展示  | P2     | ✅ 已完成 |
+| 10   | 开发产品资源库管理功能            | P2     | ✅ 已完成 |
 
 ### 2.2 UI/UX需求
 
-| 序号 | 开发指令 | 状态 |
-|------|----------|------|
-| 1 | 设计深色科技风格界面 (Nexus主题) | ✅ 已完成 |
-| 2 | 实现左侧智能体矩阵导航栏 | ✅ 已完成 |
-| 3 | 开发中央对话式交互界面 | ✅ 已完成 |
-| 4 | 实现右侧MCP协议日志面板 | ✅ 已完成 |
-| 5 | 设计产品卡片组件(支持外链跳转) | ✅ 已完成 |
-| 6 | 实现趋势图表可视化 | ✅ 已完成 |
-| 7 | 开发Amazon/TikTok调研弹窗 | ✅ 已完成 |
+| 序号 | 开发指令                         | 状态      |
+| ---- | -------------------------------- | --------- |
+| 1    | 设计深色科技风格界面 (Nexus主题) | ✅ 已完成 |
+| 2    | 实现左侧智能体矩阵导航栏         | ✅ 已完成 |
+| 3    | 开发中央对话式交互界面           | ✅ 已完成 |
+| 4    | 实现右侧MCP协议日志面板          | ✅ 已完成 |
+| 5    | 设计产品卡片组件(支持外链跳转)   | ✅ 已完成 |
+| 6    | 实现趋势图表可视化               | ✅ 已完成 |
+| 7    | 开发Amazon/TikTok调研弹窗        | ✅ 已完成 |
 
 ### 2.3 数据集成需求
 
-| 序号 | 开发指令 | 状态 |
-|------|----------|------|
-| 1 | 集成Rainforest API获取Amazon真实数据 | ✅ 已完成 |
-| 2 | 实现API降级策略(真实→模拟数据) | ✅ 已完成 |
-| 3 | 支持多站点Amazon数据(US/DE/UK/JP/CA) | ✅ 已完成 |
-| 4 | 实现TikTok Shop多地区支持 | ✅ 已完成 |
-| 5 | 开发AliExpress供应商数据服务 | ✅ 已完成 |
+| 序号 | 开发指令                             | 状态      |
+| ---- | ------------------------------------ | --------- |
+| 1    | 集成Rainforest API获取Amazon真实数据 | ✅ 已完成 |
+| 2    | 实现API降级策略(真实→模拟数据)      | ✅ 已完成 |
+| 3    | 支持多站点Amazon数据(US/DE/UK/JP/CA) | ✅ 已完成 |
+| 4    | 实现TikTok Shop多地区支持            | ✅ 已完成 |
+| 5    | 开发AliExpress供应商数据服务         | ✅ 已完成 |
 
 ---
 
@@ -292,6 +292,7 @@ TradeNexus_AI/
 **职责**: 应用状态管理、用户交互处理、组件编排
 
 **核心状态**:
+
 ```typescript
 const [activeAgent, setActiveAgent] = useState<AgentType>(AgentType.GENERAL_MANAGER);
 const [query, setQuery] = useState('');
@@ -303,6 +304,7 @@ const [researchTasks, setResearchTasks] = useState<ResearchTask[]>([]);
 ```
 
 **核心功能**:
+
 - `handleAnalyze()`: 处理用户查询，调用Gemini API
 - `addSystemLog()`: 添加系统日志
 - `addProtocolLog()`: 添加Agent通信协议日志
@@ -312,14 +314,15 @@ const [researchTasks, setResearchTasks] = useState<ResearchTask[]>([]);
 
 **功能模块**:
 
-| 模块 | 功能描述 |
-|------|----------|
-| 智能体矩阵 | 显示5大AI智能体状态(空闲/运行中/成功/错误) |
-| 市场调研模块 | Amazon/TikTok调研入口、调研任务列表 |
-| 产品资源库 | 爆款产品目录、客户咨询目录、待拓展目录 |
-| 系统健康度 | 核心编排器、AgentOps监控状态 |
+| 模块         | 功能描述                                   |
+| ------------ | ------------------------------------------ |
+| 智能体矩阵   | 显示5大AI智能体状态(空闲/运行中/成功/错误) |
+| 市场调研模块 | Amazon/TikTok调研入口、调研任务列表        |
+| 产品资源库   | 爆款产品目录、客户咨询目录、待拓展目录     |
+| 系统健康度   | 核心编排器、AgentOps监控状态               |
 
 **智能体定义**:
+
 ```typescript
 const agents = [
   { id: AgentType.GENERAL_MANAGER, icon: Command, label: 'AI 总管 (指挥官)' },
@@ -333,11 +336,13 @@ const agents = [
 #### 5.1.3 AmazonResearchDialog.tsx - Amazon调研弹窗
 
 **支持的查询类型**:
+
 - **ASIN查询**: 输入 `B08F6Z8666` 格式的产品ID
 - **关键词搜索**: 输入产品关键词如 `wireless earbuds`
 - **URL解析**: 粘贴Amazon产品链接自动提取ASIN
 
 **支持的站点**:
+
 ```typescript
 export const AMAZON_DOMAINS = [
   { label: '美国站 (amazon.com)', value: 'amazon.com' },
@@ -349,6 +354,7 @@ export const AMAZON_DOMAINS = [
 ```
 
 **数据展示**:
+
 - 产品图片、标题、ASIN
 - 价格、销量标签 (如 "5K+ bought in past month")
 - BSR排名、数据来源标识(真实/模拟)
@@ -356,10 +362,12 @@ export const AMAZON_DOMAINS = [
 #### 5.1.4 TikTokResearchDialog.tsx - TikTok调研弹窗
 
 **功能标签页**:
+
 - **产品搜索**: 关键词搜索TikTok Shop产品
 - **热门趋势**: 获取各地区热销产品
 
 **支持地区**:
+
 ```typescript
 export const TIKTOK_REGIONS = [
   { code: 'US', name: '美国站 (TikTok Shop US)' },
@@ -374,6 +382,7 @@ export const TIKTOK_REGIONS = [
 #### 5.1.5 ProductCard.tsx - 产品卡片组件
 
 **展示信息**:
+
 - 产品图片 (支持悬停放大效果)
 - 数据来源标签 (真实数据/模拟数据)
 - 趋势分数 (0-100)
@@ -383,12 +392,14 @@ export const TIKTOK_REGIONS = [
 - 预估毛利
 
 **交互功能**:
+
 - 点击跳转Amazon搜索页面
 - 悬停显示外链图标
 
 #### 5.1.6 TrendChart.tsx - 趋势图表
 
 **基于Recharts实现**:
+
 - 面积图展示搜索热度
 - 7天数据趋势
 - 渐变填充效果
@@ -397,12 +408,14 @@ export const TIKTOK_REGIONS = [
 #### 5.1.7 MCPLiveLog.tsx - 协议日志面板
 
 **日志类型**:
+
 1. **系统日志**: 显示工具名称、状态、消息
 2. **协议日志**: 显示Agent间通信
    - REQUEST (蓝色): 请求方 → 接收方
    - RESPONSE (绿色): 响应方 → 请求方
 
 **日志格式**:
+
 ```typescript
 interface MCPLog {
   id: string;
@@ -418,7 +431,8 @@ interface MCPLog {
 
 **功能**: 可折叠展示AI的推理过程
 
-**样式**: 
+**样式**:
+
 - 折叠状态显示"思考过程"按钮
 - 展开后显示等宽字体的推理文本
 
@@ -492,6 +506,7 @@ export interface AmazonProductData {
 **主要功能**: 调用Google Gemini API进行智能分析
 
 **工作流程**:
+
 ```
 1. 工具执行阶段 (Tool Execution Phase)
    ├── 构建工具调用提示词
@@ -506,6 +521,7 @@ export interface AmazonProductData {
 ```
 
 **响应Schema**:
+
 ```typescript
 const responseSchema = {
   type: Type.OBJECT,
@@ -525,20 +541,22 @@ const responseSchema = {
 ### 6.2 rainforestService.ts - Amazon数据服务
 
 **API配置**:
+
 ```typescript
 const RAINFOREST_BASE_URL = 'https://api.rainforestapi.com/request';
 ```
 
 **核心函数**:
 
-| 函数 | 功能 | 参数 |
-|------|------|------|
-| `fetchAmazonProductByAsin()` | 根据ASIN获取产品详情 | asin, domain |
-| `searchAmazonProducts()` | 关键词搜索产品 | keyword, domain, maxResults |
-| `queryAmazonData()` | 统一查询入口 | AmazonResearchQuery |
-| `getDataSourceMode()` | 检测数据源模式 | - |
+| 函数                           | 功能                 | 参数                        |
+| ------------------------------ | -------------------- | --------------------------- |
+| `fetchAmazonProductByAsin()` | 根据ASIN获取产品详情 | asin, domain                |
+| `searchAmazonProducts()`     | 关键词搜索产品       | keyword, domain, maxResults |
+| `queryAmazonData()`          | 统一查询入口         | AmazonResearchQuery         |
+| `getDataSourceMode()`        | 检测数据源模式       | -                           |
 
 **降级策略**:
+
 ```typescript
 const getRainforestApiKey = (): string | null => {
   const key = import.meta.env.VITE_RAINFOREST_API_KEY;
@@ -555,13 +573,14 @@ if (!apiKey) {
 
 **核心函数**:
 
-| 函数 | 功能 |
-|------|------|
-| `searchTikTokProducts()` | 搜索TikTok Shop产品 |
-| `getTikTokTrendingProducts()` | 获取热门趋势产品 |
-| `getTikTokDataSourceMode()` | 检测数据源模式 |
+| 函数                            | 功能                |
+| ------------------------------- | ------------------- |
+| `searchTikTokProducts()`      | 搜索TikTok Shop产品 |
+| `getTikTokTrendingProducts()` | 获取热门趋势产品    |
+| `getTikTokDataSourceMode()`   | 检测数据源模式      |
 
 **数据结构**:
+
 ```typescript
 export interface TikTokProductData {
   productId: string;
@@ -580,11 +599,13 @@ export interface TikTokProductData {
 ### 6.4 aliexpressService.ts - AliExpress服务
 
 **核心功能**:
+
 - 供应商产品搜索
 - 利润空间计算
 - 价格对比分析
 
 **利润计算**:
+
 ```typescript
 export const calculateProfit = (
   amazonPrice: number,
@@ -606,6 +627,7 @@ export const calculateProfit = (
 ### 6.5 toolService.ts - 工具调用服务
 
 **Gemini工具定义**:
+
 ```typescript
 export const marketIntelligenceTools: Tool[] = [
   {
@@ -632,6 +654,7 @@ export const marketIntelligenceTools: Tool[] = [
 ```
 
 **工具映射**:
+
 ```typescript
 export const toolsMap = {
   fetchProductDetails: fetchProductDetails,
@@ -648,31 +671,31 @@ export const toolsMap = {
 
 #### 🔴 高优先级问题
 
-| 问题 | 描述 | 影响 |
-|------|------|------|
-| **TikTok API未真实集成** | 当前仅使用模拟数据 | 无法获取真实TikTok热销数据 |
-| **AliExpress API未真实集成** | 当前仅使用模拟数据 | 无法进行真实价格对比 |
-| **无数据持久化** | 所有数据存储在内存中 | 刷新页面数据丢失 |
-| **无用户认证系统** | 无登录/注册功能 | 无法保存用户偏好和历史 |
+| 问题                               | 描述                 | 影响                       |
+| ---------------------------------- | -------------------- | -------------------------- |
+| **TikTok API未真实集成**     | 当前仅使用模拟数据   | 无法获取真实TikTok热销数据 |
+| **AliExpress API未真实集成** | 当前仅使用模拟数据   | 无法进行真实价格对比       |
+| **无数据持久化**             | 所有数据存储在内存中 | 刷新页面数据丢失           |
+| **无用户认证系统**           | 无登录/注册功能      | 无法保存用户偏好和历史     |
 
 #### 🟡 中优先级问题
 
-| 问题 | 描述 | 影响 |
-|------|------|------|
-| **客户开发官功能空缺** | 仅有UI占位，无实际功能 | 无法进行客户管理 |
+| 问题                         | 描述                   | 影响                |
+| ---------------------------- | ---------------------- | ------------------- |
+| **客户开发官功能空缺** | 仅有UI占位，无实际功能 | 无法进行客户管理    |
 | **贸易合规官功能空缺** | 仅有UI占位，无实际功能 | 无法查询HS编码/关税 |
-| **供应链总监功能空缺** | 仅有UI占位，无实际功能 | 无法进行物流比价 |
-| **无错误边界处理** | API失败时用户体验差 | 可能导致白屏 |
-| **无国际化支持** | 仅支持中文 | 限制国际用户使用 |
+| **供应链总监功能空缺** | 仅有UI占位，无实际功能 | 无法进行物流比价    |
+| **无错误边界处理**     | API失败时用户体验差    | 可能导致白屏        |
+| **无国际化支持**       | 仅支持中文             | 限制国际用户使用    |
 
 #### 🟢 低优先级问题
 
-| 问题 | 描述 |
-|------|------|
-| 无深色/浅色主题切换 | 仅支持深色主题 |
-| 无移动端适配 | 在手机上体验较差 |
-| 无键盘快捷键 | 操作效率可提升 |
-| 无导出功能 | 无法导出分析报告 |
+| 问题                | 描述             |
+| ------------------- | ---------------- |
+| 无深色/浅色主题切换 | 仅支持深色主题   |
+| 无移动端适配        | 在手机上体验较差 |
+| 无键盘快捷键        | 操作效率可提升   |
+| 无导出功能          | 无法导出分析报告 |
 
 ### 7.2 改进开发计划
 
@@ -788,14 +811,14 @@ D.4 移动端App
 
 ### 7.3 技术债务清单
 
-| 项目 | 当前状态 | 建议改进 |
-|------|----------|----------|
-| 状态管理 | useState分散 | 迁移至 Zustand/Jotai |
-| API调用 | 原生fetch | 使用 React Query |
-| 表单处理 | 手动管理 | 使用 React Hook Form |
-| 类型安全 | 部分any | 完善类型定义 |
-| 测试覆盖 | 无测试 | 添加 Vitest 单元测试 |
-| 代码规范 | 无统一规范 | 配置 ESLint + Prettier |
+| 项目     | 当前状态     | 建议改进               |
+| -------- | ------------ | ---------------------- |
+| 状态管理 | useState分散 | 迁移至 Zustand/Jotai   |
+| API调用  | 原生fetch    | 使用 React Query       |
+| 表单处理 | 手动管理     | 使用 React Hook Form   |
+| 类型安全 | 部分any      | 完善类型定义           |
+| 测试覆盖 | 无测试       | 添加 Vitest 单元测试   |
+| 代码规范 | 无统一规范   | 配置 ESLint + Prettier |
 
 ---
 
@@ -837,20 +860,22 @@ npm run preview
 
 ### 8.3 API Key获取指南
 
-| API | 获取地址 | 用途 |
-|-----|----------|------|
-| Google Gemini | https://aistudio.google.com/app/apikey | AI分析核心 |
-| Rainforest API | https://www.rainforestapi.com/ | Amazon数据 |
-| Apify | https://console.apify.com/account/integrations | TikTok数据 |
+| API            | 获取地址                                       | 用途       |
+| -------------- | ---------------------------------------------- | ---------- |
+| Google Gemini  | https://aistudio.google.com/app/apikey         | AI分析核心 |
+| Rainforest API | https://www.rainforestapi.com/                 | Amazon数据 |
+| Apify          | https://console.apify.com/account/integrations | TikTok数据 |
 
 ### 8.4 部署建议
 
 **推荐平台**:
+
 - **Vercel** (推荐): 与Vite完美兼容，自动CI/CD
 - **Netlify**: 简单易用，免费额度充足
 - **Cloudflare Pages**: 全球CDN，速度快
 
 **注意事项**:
+
 1. 环境变量需在部署平台配置
 2. `VITE_` 前缀的变量会暴露给前端，注意安全
 3. `API_KEY` (Gemini) 应通过后端代理调用
@@ -884,13 +909,13 @@ npx tsc --noEmit     # TypeScript类型检查
 
 ### C. 更新日志
 
-| 版本 | 日期 | 更新内容 |
-|------|------|----------|
+| 版本 | 日期    | 更新内容                        |
+| ---- | ------- | ------------------------------- |
 | v2.0 | 2024-12 | 多智能体架构、Amazon/TikTok调研 |
-| v1.0 | 2024-11 | 初始版本、基础对话功能 |
+| v1.0 | 2024-11 | 初始版本、基础对话功能          |
 
 ---
 
-> 📝 **文档维护**: 本文档应随项目迭代持续更新  
-> 🔗 **项目地址**: https://github.com/uuuqqqmmm/TradeNexu_AI  
+> 📝 **文档维护**: 本文档应随项目迭代持续更新
+> 🔗 **项目地址**: https://github.com/uuuqqqmmm/TradeNexu_AI
 > 📧 **反馈建议**: 请通过GitHub Issues提交

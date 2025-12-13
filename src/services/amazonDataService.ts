@@ -12,6 +12,10 @@ import { AmazonProductData, AmazonResearchQuery } from '../types';
 // 后端 API 地址
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+// Apify API 配置
+const APIFY_BASE_URL = 'https://api.apify.com/v2';
+const AMAZON_SCRAPER_ACTOR_ID = 'junglee~amazon-scraper';
+
 // 检查后端 Amazon API 是否可用
 const checkBackendAvailable = async (): Promise<boolean> => {
     try {

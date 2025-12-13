@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, Loader2, ShoppingCart, TrendingUp, Star, ExternalLink, AlertCircle } from 'lucide-react';
 import { AmazonProductData, AmazonResearchQuery, AMAZON_DOMAINS } from '../types';
-import { queryAmazonData, getDataSourceMode } from '../services/rainforestService';
+import { queryAmazonData, getDataSourceMode } from '../services/amazonDataService';
 
 interface AmazonResearchDialogProps {
     isOpen: boolean;

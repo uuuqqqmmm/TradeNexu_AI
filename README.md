@@ -18,13 +18,13 @@ TradeNexus AI 是一个基于多智能体协作的跨境电商决策支持系统
 
 ### 核心智能体
 
-| 智能体 | 职责 |
-|--------|------|
-| 🎖️ **AI 总管** | 协调各智能体，生成综合分析报告 |
-| 🔍 **市场情报官** | Amazon/TikTok/Shopee 数据分析 |
-| 🧱 **供应链总监** | 1688 货源搜索、利润试算 |
-| ⚖️ **贸易合规官** | HS编码匹配、认证检查 |
-| 👥 **客户开发官** | 多语言沟通、社媒挖掘 |
+| 智能体                   | 职责                           |
+| ------------------------ | ------------------------------ |
+| 🎖️**AI 总管**    | 协调各智能体，生成综合分析报告 |
+| 🔍**市场情报官**   | Amazon/TikTok/Shopee 数据分析  |
+| 🧱**供应链总监**   | 1688 货源搜索、利润试算        |
+| ⚖️**贸易合规官** | HS编码匹配、认证检查           |
+| 👥**客户开发官**   | 多语言沟通、社媒挖掘           |
 
 ---
 
@@ -113,12 +113,12 @@ TradeNexus_AI/
 
 ## ⚙️ 环境变量
 
-| 变量名 | 必需 | 说明 |
-|--------|------|------|
-| `API_KEY` | ✅ | Google Gemini API Key |
-| `VITE_APIFY_TOKEN` | ✅ | Apify API Token (Amazon/TikTok 数据) |
-| `DB_PASSWORD` | 后端 | PostgreSQL 密码 |
-| `JWT_SECRET` | 后端 | JWT 签名密钥 |
+| 变量名               | 必需 | 说明                                 |
+| -------------------- | ---- | ------------------------------------ |
+| `API_KEY`          | ✅   | Google Gemini API Key                |
+| `VITE_APIFY_TOKEN` | ✅   | Apify API Token (Amazon/TikTok 数据) |
+| `DB_PASSWORD`      | 后端 | PostgreSQL 密码                      |
+| `JWT_SECRET`       | 后端 | JWT 签名密钥                         |
 
 ---
 
@@ -133,6 +133,7 @@ TradeNexus_AI/
 ## 🛠️ 技术栈
 
 **前端**
+
 - React 18 + TypeScript
 - Vite
 - TailwindCSS
@@ -140,12 +141,14 @@ TradeNexus_AI/
 - Lucide Icons
 
 **后端 (v3.0)**
+
 - Nest.js
 - Prisma + PostgreSQL
 - Redis + BullMQ
 - Puppeteer
 
 **AI**
+
 - Google Gemini API
 - Apify (Amazon/TikTok Scraper)
 

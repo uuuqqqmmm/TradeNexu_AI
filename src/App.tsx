@@ -12,10 +12,11 @@ import { ProfitCalculator } from './components/ProfitCalculator';
 import { SourcingSearch } from './components/SourcingSearch';
 import { ProductDashboard } from './components/ProductDashboard';
 import { ProductDetailPage } from './components/ProductDetailPage';
-import { generateTrendAnalysis } from './services/geminiService';
+import { MemoryPanel } from './components/MemoryPanel';
+import { generateTrendAnalysis } from './services/deepseekService';
 import { AgentType, Message, MCPLog, MCPToolStatus, AgentProtocolEvent, ProductCatalog, ResearchTask, AmazonProductData } from './types';
 import { TikTokProductData } from './services/tiktokService';
-import { Send, Search, Cpu, BrainCircuit, ShieldAlert, Bot } from 'lucide-react';
+import { Send, Search, Cpu, BrainCircuit, ShieldAlert, Bot, ChevronDown } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activeAgent, setActiveAgent] = useState<AgentType>(AgentType.GENERAL_MANAGER);
@@ -74,6 +75,27 @@ export const App: React.FC = () => {
 
   // 产品详情页状态
   const [selectedProduct, setSelectedProduct] = useState<AmazonProductData | null>(null);
+
+  // AI 模型选择状态
+  const [selectedModel, setSelectedModel] = useState('deepseek-v3.1');
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const availableModels = [
+    { key: 'deepseek-v3.1', name: 'DeepSeek V3.1 (推荐)', description: '最新免费模型' },
+    { key: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: '快速响应' },
+    { key: 'deepseek-chat', name: 'DeepSeek Chat', description: '原生API' },
+  ];
+
+  // 联网搜索模式状态
+  const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
+  const [isWebSearchDropdownOpen, setIsWebSearchDropdownOpen] = useState(false);
+  const webSearchModes = [
+    { key: 'auto', name: '自动', description: 'AI 自动判断是否联网', icon: '🤖' },
+    { key: 'on', name: '开启', description: '强制联网搜索', icon: '🌐' },
+    { key: 'off', name: '关闭', description: '不使用联网搜索', icon: '🔒' },
+  ];
+
+  // 记忆面板状态
+  const [isMemoryPanelExpanded, setIsMemoryPanelExpanded] = useState(false);
 
   // 打开利润计算器
   const openProfitCalculator = (costPrice?: number, sellPrice?: number, productName?: string) => {
@@ -203,11 +225,10 @@ export const App: React.FC = () => {
       await addSystemLog('系统内核', '接收用户指令...', MCPToolStatus.IDLE);
       await addSystemLog('AI总管', '意图识别与任务规划中...', MCPToolStatus.RUNNING);
 
-      const apiKey = process.env.API_KEY;
-      if (!apiKey) throw new Error("Gemini API Key 未配置，请在 .env 文件中设置 API_KEY");
+      const apiKey = import.meta.env.VITE_DEEPSEEK_API_KEY || 'openrouter';
 
-      // 2. 调用 API (获取完整分析结果，包含模拟的通信日志)
-      const analysisData = await generateTrendAnalysis(apiKey, currentQuery, chatHistory);
+      // 2. 调用 API (获取完整分析结果，使用选定的模型和联网模式)
+      const analysisData = await generateTrendAnalysis(apiKey, currentQuery, chatHistory, selectedModel, webSearchMode);
 
       // 3. 播放 "Thinking Process" (语义记忆检索模拟)
       await addSystemLog('记忆中枢', '加载领域知识库 (RAG)...', MCPToolStatus.SUCCESS);
@@ -259,12 +280,12 @@ export const App: React.FC = () => {
 
       // 根据错误类型显示不同的提示
       let userMessage = "报告指挥官：军团通信网络出现波动，请稍后重试。";
-      if (errorMessage.includes('API Key')) {
-        userMessage = "⚠️ 系统配置错误：Gemini API Key 未配置。请在 .env 文件中设置 VITE_GEMINI_API_KEY";
+      if (errorMessage.includes('API Key') || errorMessage.includes('DeepSeek')) {
+        userMessage = "⚠️ 系统配置错误：DeepSeek API Key 未配置。请在 .env 文件中设置 VITE_DEEPSEEK_API_KEY";
       } else if (errorMessage.includes('429') || errorMessage.includes('quota')) {
-        userMessage = "⚠️ API 配额超限：请稍后重试或检查您的 Gemini API 配额";
+        userMessage = "⚠️ API 配额超限：请稍后重试或检查您的 DeepSeek API 配额";
       } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
-        userMessage = "⚠️ API 认证失败：请检查您的 Gemini API Key 是否有效";
+        userMessage = "⚠️ API 认证失败：请检查您的 DeepSeek API Key 是否有效";
       }
 
       const errorMsg: Message = {
@@ -379,7 +400,7 @@ export const App: React.FC = () => {
                           </div>
 
                           {/* 结构化建议 */}
-                          {msg.data && (
+                          {msg.data && msg.data.strategicAdvice && (
                             <div className="bg-nexus-900/50 p-4 rounded-lg border-l-4 border-nexus-warning mt-2">
                               <h5 className="text-nexus-warning font-bold text-xs mb-1 uppercase">战略建议</h5>
                               <p className="text-sm text-gray-300">{msg.data.strategicAdvice}</p>
@@ -389,12 +410,16 @@ export const App: React.FC = () => {
                           {/* 图表与卡片 */}
                           {msg.data && (
                             <div className="space-y-6 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                              <TrendChart data={msg.data.trendData} />
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {msg.data.topProducts.map((product) => (
-                                  <ProductCard key={product.id} product={product} />
-                                ))}
-                              </div>
+                              {Array.isArray(msg.data.trendData) && msg.data.trendData.length > 0 && (
+                                <TrendChart data={msg.data.trendData} />
+                              )}
+                              {Array.isArray(msg.data.topProducts) && msg.data.topProducts.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {msg.data.topProducts.map((product) => (
+                                    <ProductCard key={product.id} product={product} />
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </>
@@ -425,6 +450,95 @@ export const App: React.FC = () => {
 
             {/* 底部输入框 */}
             <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-nexus-900 via-nexus-900 to-transparent z-20">
+              {/* 模型选择器 + 联网搜索开关 */}
+              <div className="max-w-4xl mx-auto mb-2 flex items-center gap-4">
+                {/* 模型选择 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-500">模型:</span>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => { setIsModelDropdownOpen(!isModelDropdownOpen); setIsWebSearchDropdownOpen(false); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-nexus-800 border border-nexus-700 rounded-lg text-xs text-gray-300 hover:border-nexus-accent transition-colors"
+                    >
+                      <BrainCircuit size={12} className="text-nexus-accent" />
+                      <span>{availableModels.find(m => m.key === selectedModel)?.name || selectedModel}</span>
+                      <ChevronDown size={12} className={`transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isModelDropdownOpen && (
+                      <div className="absolute bottom-full left-0 mb-1 w-64 bg-nexus-800 border border-nexus-700 rounded-lg shadow-xl overflow-hidden z-50">
+                        {availableModels.map(model => (
+                          <button
+                            key={model.key}
+                            onClick={() => {
+                              setSelectedModel(model.key);
+                              setIsModelDropdownOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left hover:bg-nexus-700 transition-colors ${
+                              selectedModel === model.key ? 'bg-nexus-700/50' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <BrainCircuit size={14} className={selectedModel === model.key ? 'text-nexus-accent' : 'text-gray-500'} />
+                              <div>
+                                <div className="text-xs text-white">{model.name}</div>
+                                <div className="text-[10px] text-gray-500">{model.description}</div>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 联网搜索开关 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-500">联网:</span>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => { setIsWebSearchDropdownOpen(!isWebSearchDropdownOpen); setIsModelDropdownOpen(false); }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs transition-colors ${
+                        webSearchMode === 'on' 
+                          ? 'bg-green-900/50 border-green-600 text-green-400' 
+                          : webSearchMode === 'off' 
+                            ? 'bg-red-900/50 border-red-600 text-red-400'
+                            : 'bg-nexus-800 border-nexus-700 text-gray-300 hover:border-nexus-accent'
+                      }`}
+                    >
+                      <span>{webSearchModes.find(m => m.key === webSearchMode)?.icon}</span>
+                      <span>{webSearchModes.find(m => m.key === webSearchMode)?.name}</span>
+                      <ChevronDown size={12} className={`transition-transform ${isWebSearchDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isWebSearchDropdownOpen && (
+                      <div className="absolute bottom-full left-0 mb-1 w-56 bg-nexus-800 border border-nexus-700 rounded-lg shadow-xl overflow-hidden z-50">
+                        {webSearchModes.map(mode => (
+                          <button
+                            key={mode.key}
+                            onClick={() => {
+                              setWebSearchMode(mode.key as 'auto' | 'on' | 'off');
+                              setIsWebSearchDropdownOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left hover:bg-nexus-700 transition-colors ${
+                              webSearchMode === mode.key ? 'bg-nexus-700/50' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">{mode.icon}</span>
+                              <div>
+                                <div className="text-xs text-white">{mode.name}</div>
+                                <div className="text-[10px] text-gray-500">{mode.description}</div>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
               <form onSubmit={handleAnalyze} className="relative max-w-4xl mx-auto shadow-2xl">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                   <Search className={`text-gray-500 ${isAnalyzing ? 'animate-pulse' : ''}`} size={20} />
@@ -455,19 +569,12 @@ export const App: React.FC = () => {
               <MCPLiveLog logs={logs} />
             </div>
 
-            {/* 底部状态 */}
-            <div className="mt-4 p-3 bg-nexus-800 rounded-lg border border-nexus-700 space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-500">语义记忆</span>
-                <span className="text-nexus-accent font-mono">已加载</span>
-              </div>
-              <div className="w-full bg-nexus-900 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-nexus-accent h-full w-[85%]"></div>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-500">合规数据库</span>
-                <span className="text-nexus-success font-mono">已连接</span>
-              </div>
+            {/* Titans 长期记忆面板 */}
+            <div className="mt-4">
+              <MemoryPanel 
+                isExpanded={isMemoryPanelExpanded}
+                onToggle={() => setIsMemoryPanelExpanded(!isMemoryPanelExpanded)}
+              />
             </div>
           </div>
         </div>

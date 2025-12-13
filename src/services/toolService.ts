@@ -1,6 +1,6 @@
 import { ProductDetails } from "../types";
 import { Tool, Type } from "@google/genai";
-import { searchAmazonProducts, getDataSourceMode } from "./rainforestService";
+import { searchAmazonProducts, getDataSourceMode } from "./amazonDataService";
 
 // 模拟数据生成器（用于非 Amazon 平台的回退）
 const mockProducts: Record<string, ProductDetails[]> = {
@@ -50,13 +50,13 @@ const mockProducts: Record<string, ProductDetails[]> = {
 };
 
 /**
- * 获取产品详情 - Amazon 平台使用真实 Rainforest API
+ * 获取产品详情 - Amazon 平台使用 RapidAPI/Apify
  */
 export const fetchProductDetails = async (query: string, platform: string = "Amazon"): Promise<ProductDetails[]> => {
     const dataMode = getDataSourceMode();
     console.log(`[Tool] 获取产品数据 "${query}" 平台: ${platform}，数据模式: ${dataMode}`);
 
-    // Amazon 平台：调用真实 Rainforest API
+    // Amazon 平台：调用 Amazon Data API
     if (platform === "Amazon") {
         try {
             const amazonProducts = await searchAmazonProducts(query, "amazon.com", 5);
@@ -79,7 +79,7 @@ export const fetchProductDetails = async (query: string, platform: string = "Ama
                 main_image: p.mainImage,
                 url: p.link,
                 platform: "Amazon",
-                rating: 0,  // Rainforest 搜索接口不返回评分
+                rating: 0,  // 搜索接口不返回评分
                 reviewCount: 0,
                 bsr: p.bsr,
                 bsrCategory: p.bsrCategory,
@@ -87,7 +87,7 @@ export const fetchProductDetails = async (query: string, platform: string = "Ama
                 rankInResults: index + 1  // 在结果中的排名
             }));
         } catch (error) {
-            console.error("[Tool] Rainforest API 调用失败，使用模拟数据:", error);
+            console.error("[Tool] Amazon API 调用失败，使用模拟数据:", error);
         }
     }
 

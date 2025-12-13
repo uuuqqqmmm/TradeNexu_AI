@@ -32,3 +32,6 @@ dist-ssr
 *.pem
 *.key
 secrets/
+
+# Docker 数据目录
+data/

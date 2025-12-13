@@ -217,6 +217,122 @@ model Supplier {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  // 关联
+  capabilities SupplierCapability[]
+  quotes       Quote[]
+
   @@index([userId])
   @@map("suppliers")
+}
+
+// ============================================
+// Titans 长期记忆系统
+// ============================================
+
+// 时效性报价表 (事实记忆核心)
+model Quote {
+  id           String   @id @default(uuid())
+  supplierId   String?  @map("supplier_id")
+  itemType     String   @map("item_type")     // 'product', 'freight', 'service'
+  itemName     String   @map("item_name")
+  price        Decimal  @db.Decimal(10, 2)
+  currency     String   @default("USD")
+  unit         String?                         // 'per_kg', 'per_cbm', 'per_unit'
+  route        String?                         // 'CN-DE', 'CN-US' (物流专用)
+  terms        String?                         // 'FOB', 'CIF', 'EXW'
+  validFrom    DateTime @default(now()) @map("valid_from")
+  validUntil   DateTime @map("valid_until")    // TTL 过期时间
+  isDeprecated Boolean  @default(false) @map("is_deprecated")
+  source       String?                         // 'user_input', 'search_rag', 'api'
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@index([itemType, validUntil])
+  @@index([route, validUntil])
+  @@index([supplierId])
+  @@map("quotes")
+}
+
+// 知识块表 (语义记忆 - 增强版)
+model KnowledgeChunk {
+  id           String                       @id @default(uuid())
+  category     String                       // 'regulation', 'contract', 'product_spec', 'tariff'
+  country      String?                      // 'US', 'DE', 'CN', 'EU'
+  title        String
+  content      String
+  embedding    Unsupported("vector(1536)")?
+  source       String?                      // 来源URL或文件名
+  version      String?                      // '2024', '2025'
+  isDeprecated Boolean  @default(false) @map("is_deprecated")
+  supersededBy String?  @map("superseded_by") // 被哪个新版本替代
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([category, country])
+  @@index([isDeprecated])
+  @@map("knowledge_chunks")
+}
+
+// 对话记忆摘要表 (长期交互记忆)
+model ConversationMemory {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  sessionId       String?  @map("session_id")
+  summary         String                      // AI 生成的摘要
+  keyEntities     Json     @map("key_entities")   // {"focus_country": "DE", "focus_product": "LED"}
+  userPreferences Json?    @map("user_preferences") // {"prefers_sea_freight": true}
+  actionItems     Json?    @map("action_items")   // 待办事项
+  sentiment       String?                     // 'positive', 'neutral', 'negative'
+  importance      Int      @default(5)        // 1-10 重要性评分
+  lastInteraction DateTime @map("last_interaction")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([userId, lastInteraction])
+  @@index([importance])
+  @@map("conversation_memories")
+}
+
+// 实体关系表 (关联记忆 - 简化版图谱)
+model EntityRelation {
+  id           String   @id @default(uuid())
+  fromType     String   @map("from_type")     // 'supplier', 'product', 'country', 'forwarder'
+  fromId       String   @map("from_id")
+  fromName     String   @map("from_name")
+  relationType String   @map("relation_type") // 'produces', 'requires', 'serves', 'has_certification'
+  toType       String   @map("to_type")
+  toId         String   @map("to_id")
+  toName       String   @map("to_name")
+  properties   Json?                          // 关系属性
+  confidence   Decimal? @db.Decimal(3, 2)     // AI 提取的置信度
+  source       String?                        // 数据来源
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([fromType, fromId])
+  @@index([toType, toId])
+  @@index([relationType])
+  @@map("entity_relations")
+}
+
+// 供应商能力表 (扩展 Supplier)
+model SupplierCapability {
+  id             String    @id @default(uuid())
+  supplierId     String    @map("supplier_id")
+  capability     String                       // 'dangerous_goods', 'cold_chain', 'oversized'
+  certification  String?                      // 'ISO9001', 'IATF16949', 'UN38.3'
+  validUntil     DateTime? @map("valid_until")
+  verifiedAt     DateTime? @map("verified_at")
+  verifiedSource String?   @map("verified_source")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  // 关联
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([capability])
+  @@map("supplier_capabilities")
 }

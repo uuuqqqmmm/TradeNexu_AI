@@ -7,6 +7,23 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       'process.env.API_KEY': JSON.stringify(env.API_KEY)
+    },
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, '')
+        },
+        '/memory': {
+          target: 'http://localhost:3000',
+          changeOrigin: true
+        },
+        '/ai': {
+          target: 'http://localhost:3000',
+          changeOrigin: true
+        }
+      }
     }
   }
 })

@@ -18,6 +18,169 @@ interface ApiConfigDialogProps {
   onClose: () => void;
 }
 
+// 配置项组件
+const ConfigItem: React.FC<{
+  config: ApiConfig;
+  editingId: string | null;
+  editValue: string;
+  setEditValue: (v: string) => void;
+  showValue: Record<string, boolean>;
+  copiedId: string | null;
+  handleEdit: (config: ApiConfig) => void;
+  handleSave: (id: string) => void;
+  handleDelete: (id: string) => void;
+  handleShowValue: (id: string, show: boolean) => void;
+  handleCopy: (id: string, value: string) => void;
+  setEditingId: (id: string | null) => void;
+  getCategoryLabel: (category: string) => string;
+  getCategoryColor: (category: string) => string;
+}> = ({
+  config,
+  editingId,
+  editValue,
+  setEditValue,
+  showValue,
+  copiedId,
+  handleEdit,
+  handleSave,
+  handleDelete,
+  handleShowValue,
+  handleCopy,
+  setEditingId,
+  getCategoryLabel,
+  getCategoryColor,
+}) => (
+  <div
+    className={`p-4 rounded-lg border transition-all ${
+      config.status === 'configured'
+        ? 'bg-nexus-800/50 border-nexus-700'
+        : 'bg-nexus-800/30 border-nexus-800 border-dashed'
+    }`}
+  >
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-medium text-white">{config.name}</span>
+          {config.required && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+              必需
+            </span>
+          )}
+          {config.status === 'configured' ? (
+            <CheckCircle2 size={14} className="text-green-500" />
+          ) : (
+            <AlertCircle size={14} className="text-yellow-500" />
+          )}
+        </div>
+        <p className="text-xs text-gray-500 mb-2">{config.description}</p>
+        
+        {/* 环境变量名和值 */}
+        <div className="flex items-center gap-2 text-xs">
+          <code className="px-2 py-1 rounded bg-nexus-900 text-gray-400 font-mono text-[10px]">
+            {config.keyName}
+          </code>
+          <span className="text-gray-600">=</span>
+          
+          {editingId === config.id ? (
+            <div className="flex-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                className="flex-1 px-2 py-1 rounded bg-nexus-900 border border-nexus-600 text-white text-xs font-mono focus:outline-none focus:border-nexus-accent"
+                placeholder="输入 API Key..."
+                autoFocus
+              />
+              <button
+                onClick={() => handleSave(config.id)}
+                className="p-1 hover:bg-green-500/20 rounded text-green-500"
+              >
+                <Check size={14} />
+              </button>
+              <button
+                onClick={() => setEditingId(null)}
+                className="p-1 hover:bg-red-500/20 rounded text-red-500"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <code className={`px-2 py-1 rounded font-mono min-w-[80px] text-[10px] ${
+                config.status === 'configured' 
+                  ? 'bg-green-500/10 text-green-400' 
+                  : 'bg-nexus-900 text-gray-500'
+              }`}>
+                {showValue[config.id] && config.actualValue 
+                  ? config.actualValue 
+                  : (config.actualValue ? '••••••••' : '未配置')}
+              </code>
+              {config.actualValue && (
+                <>
+                  <button
+                    onMouseDown={() => handleShowValue(config.id, true)}
+                    onMouseUp={() => handleShowValue(config.id, false)}
+                    onMouseLeave={() => handleShowValue(config.id, false)}
+                    className="p-1.5 hover:bg-nexus-700 rounded text-gray-500 hover:text-gray-300 transition-colors select-none"
+                    title="按住显示"
+                  >
+                    {showValue[config.id] ? <Eye size={14} /> : <EyeOff size={14} />}
+                  </button>
+                  <button
+                    onClick={() => handleCopy(config.id, config.actualValue || '')}
+                    className={`p-1.5 hover:bg-nexus-700 rounded transition-colors select-none ${
+                      copiedId === config.id ? 'text-green-500' : 'text-gray-500 hover:text-gray-300'
+                    }`}
+                    title={copiedId === config.id ? '已复制!' : '复制'}
+                  >
+                    {copiedId === config.id ? <CheckCheck size={14} /> : <Copy size={14} />}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 操作按钮 */}
+      <div className="flex items-center gap-1">
+        {config.docsUrl && (
+          <a
+            href={config.docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 hover:bg-nexus-700 rounded-lg text-gray-500 hover:text-nexus-accent transition-colors"
+            title="查看文档"
+          >
+            <ExternalLink size={14} />
+          </a>
+        )}
+        <button
+          onClick={() => handleEdit(config)}
+          className="p-2 hover:bg-nexus-700 rounded-lg text-gray-500 hover:text-blue-400 transition-colors"
+          title="编辑"
+        >
+          <Edit2 size={14} />
+        </button>
+        {config.status === 'configured' && !config.required && (
+          <button
+            onClick={() => handleDelete(config.id)}
+            className="p-2 hover:bg-nexus-700 rounded-lg text-gray-500 hover:text-red-400 transition-colors"
+            title="删除"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+    </div>
+
+    {/* 提供商信息 */}
+    <div className="mt-2 pt-2 border-t border-nexus-800/50 flex items-center gap-4 text-[10px] text-gray-600">
+      <span>提供商: {config.provider}</span>
+    </div>
+  </div>
+);
+
 export const ApiConfigDialog: React.FC<ApiConfigDialogProps> = ({ isOpen, onClose }) => {
   const [configs, setConfigs] = useState<ApiConfig[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -169,147 +332,96 @@ export const ApiConfigDialog: React.FC<ApiConfigDialogProps> = ({ isOpen, onClos
           </div>
         </div>
 
-        {/* 配置列表 */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
-          {configs.map(config => (
-            <div
-              key={config.id}
-              className={`p-4 rounded-lg border transition-all ${
-                config.status === 'configured'
-                  ? 'bg-nexus-800/50 border-nexus-700'
-                  : 'bg-nexus-800/30 border-nexus-800 border-dashed'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-white">{config.name}</span>
-                    {config.required && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
-                        必需
-                      </span>
-                    )}
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${getCategoryColor(config.category)}`}>
-                      {getCategoryLabel(config.category)}
-                    </span>
-                    {config.status === 'configured' ? (
-                      <CheckCircle2 size={14} className="text-green-500" />
-                    ) : (
-                      <AlertCircle size={14} className="text-yellow-500" />
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mb-2">{config.description}</p>
-                  
-                  {/* 环境变量名和值 */}
-                  <div className="flex items-center gap-2 text-xs">
-                    <code className="px-2 py-1 rounded bg-nexus-900 text-gray-400 font-mono">
-                      {config.keyName}
-                    </code>
-                    <span className="text-gray-600">=</span>
-                    
-                    {editingId === config.id ? (
-                      <div className="flex-1 flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="flex-1 px-2 py-1 rounded bg-nexus-900 border border-nexus-600 text-white text-xs font-mono focus:outline-none focus:border-nexus-accent"
-                          placeholder="输入 API Key..."
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleSave(config.id)}
-                          className="p-1 hover:bg-green-500/20 rounded text-green-500"
-                        >
-                          <Check size={14} />
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="p-1 hover:bg-red-500/20 rounded text-red-500"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <code className={`px-2 py-1 rounded font-mono min-w-[80px] ${
-                          config.status === 'configured' 
-                            ? 'bg-green-500/10 text-green-400' 
-                            : 'bg-nexus-900 text-gray-500'
-                        }`}>
-                          {showValue[config.id] && config.actualValue 
-                            ? config.actualValue 
-                            : (config.actualValue ? '••••••••' : '未配置')}
-                        </code>
-                        {config.actualValue && (
-                          <>
-                            {/* 按住显示眼睛图标 */}
-                            <button
-                              onMouseDown={() => handleShowValue(config.id, true)}
-                              onMouseUp={() => handleShowValue(config.id, false)}
-                              onMouseLeave={() => handleShowValue(config.id, false)}
-                              onTouchStart={() => handleShowValue(config.id, true)}
-                              onTouchEnd={() => handleShowValue(config.id, false)}
-                              className="p-1.5 hover:bg-nexus-700 rounded text-gray-500 hover:text-gray-300 transition-colors select-none"
-                              title="按住显示"
-                            >
-                              {showValue[config.id] ? <Eye size={14} /> : <EyeOff size={14} />}
-                            </button>
-                            {/* 复制按钮 */}
-                            <button
-                              onClick={() => handleCopy(config.id, config.actualValue || '')}
-                              className={`p-1.5 hover:bg-nexus-700 rounded transition-colors select-none ${
-                                copiedId === config.id ? 'text-green-500' : 'text-gray-500 hover:text-gray-300'
-                              }`}
-                              title={copiedId === config.id ? '已复制!' : '复制'}
-                            >
-                              {copiedId === config.id ? <CheckCheck size={14} /> : <Copy size={14} />}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
+        {/* 配置列表 - 按分类分组 */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          {/* AI 服务 */}
+          <div>
+            <h4 className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+              AI 服务
+            </h4>
+            <div className="space-y-3">
+              {configs.filter(c => c.category === 'ai').map(config => (
+                <ConfigItem 
+                  key={config.id}
+                  config={config}
+                  editingId={editingId}
+                  editValue={editValue}
+                  setEditValue={setEditValue}
+                  showValue={showValue}
+                  copiedId={copiedId}
+                  handleEdit={handleEdit}
+                  handleSave={handleSave}
+                  handleDelete={handleDelete}
+                  handleShowValue={handleShowValue}
+                  handleCopy={handleCopy}
+                  setEditingId={setEditingId}
+                  getCategoryLabel={getCategoryLabel}
+                  getCategoryColor={getCategoryColor}
+                />
+              ))}
+            </div>
+          </div>
 
-                {/* 操作按钮 */}
-                <div className="flex items-center gap-1">
-                  {config.docsUrl && (
-                    <a
-                      href={config.docsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 hover:bg-nexus-700 rounded-lg text-gray-500 hover:text-nexus-accent transition-colors"
-                      title="查看文档"
-                    >
-                      <ExternalLink size={14} />
-                    </a>
-                  )}
-                  <button
-                    onClick={() => handleEdit(config)}
-                    className="p-2 hover:bg-nexus-700 rounded-lg text-gray-500 hover:text-blue-400 transition-colors"
-                    title="编辑"
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  {config.status === 'configured' && !config.required && (
-                    <button
-                      onClick={() => handleDelete(config.id)}
-                      className="p-2 hover:bg-nexus-700 rounded-lg text-gray-500 hover:text-red-400 transition-colors"
-                      title="删除"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
+          {/* 数据服务 */}
+          <div>
+            <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              数据服务
+            </h4>
+            <div className="space-y-3">
+              {configs.filter(c => c.category === 'data').map(config => (
+                <ConfigItem 
+                  key={config.id}
+                  config={config}
+                  editingId={editingId}
+                  editValue={editValue}
+                  setEditValue={setEditValue}
+                  showValue={showValue}
+                  copiedId={copiedId}
+                  handleEdit={handleEdit}
+                  handleSave={handleSave}
+                  handleDelete={handleDelete}
+                  handleShowValue={handleShowValue}
+                  handleCopy={handleCopy}
+                  setEditingId={setEditingId}
+                  getCategoryLabel={getCategoryLabel}
+                  getCategoryColor={getCategoryColor}
+                />
+              ))}
+            </div>
+          </div>
 
-              {/* 提供商信息 */}
-              <div className="mt-2 pt-2 border-t border-nexus-800/50 flex items-center gap-4 text-[10px] text-gray-600">
-                <span>提供商: {config.provider}</span>
+          {/* 其他配置 */}
+          {configs.filter(c => c.category === 'other').length > 0 && (
+            <div>
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-gray-500"></span>
+                其他配置
+              </h4>
+              <div className="space-y-3">
+                {configs.filter(c => c.category === 'other').map(config => (
+                  <ConfigItem 
+                    key={config.id}
+                    config={config}
+                    editingId={editingId}
+                    editValue={editValue}
+                    setEditValue={setEditValue}
+                    showValue={showValue}
+                    copiedId={copiedId}
+                    handleEdit={handleEdit}
+                    handleSave={handleSave}
+                    handleDelete={handleDelete}
+                    handleShowValue={handleShowValue}
+                    handleCopy={handleCopy}
+                    setEditingId={setEditingId}
+                    getCategoryLabel={getCategoryLabel}
+                    getCategoryColor={getCategoryColor}
+                  />
+                ))}
               </div>
             </div>
-          ))}
+          )}
 
           {/* 添加新配置 */}
           {isAddingNew ? (

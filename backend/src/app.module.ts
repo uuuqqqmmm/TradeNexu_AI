@@ -11,6 +11,7 @@ import { ComplianceModule } from './modules/compliance/compliance.module';
 import { AiModule } from './modules/ai/ai.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { AmazonModule } from './modules/amazon/amazon.module';
+import { MemoryModule } from './modules/memory/memory.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthController } from './health.controller';
 
@@ -33,6 +34,7 @@ import { HealthController } from './health.controller';
     AiModule,
     JobsModule,
     AmazonModule,
+    MemoryModule, // Titans 长期记忆系统
   ],
   controllers: [HealthController],
 })

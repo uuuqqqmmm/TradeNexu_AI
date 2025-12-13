@@ -19,16 +19,38 @@ export interface ApiConfig {
 
 // 系统预定义的 API 配置列表
 const PREDEFINED_APIS: Omit<ApiConfig, 'value' | 'status' | 'actualValue'>[] = [
+  // ========== AI 服务 ==========
   {
-    id: 'gemini',
-    name: 'Google Gemini API',
-    description: 'AI 对话和分析核心引擎',
-    keyName: 'API_KEY',
-    provider: 'Google',
-    docsUrl: 'https://aistudio.google.com/app/apikey',
+    id: 'openrouter',
+    name: 'OpenRouter API',
+    description: 'AI 服务网关 (优先使用 Gemini 2.0 Flash)',
+    keyName: 'OPENROUTER_API_KEY',
+    provider: 'OpenRouter',
+    docsUrl: 'https://openrouter.ai/keys',
     category: 'ai',
     required: true
   },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek API',
+    description: 'DeepSeek V3 对话模型 (备用)',
+    keyName: 'DEEPSEEK_API_KEY',
+    provider: 'DeepSeek',
+    docsUrl: 'https://platform.deepseek.com/',
+    category: 'ai',
+    required: false
+  },
+  {
+    id: 'gemini',
+    name: 'Google Gemini API',
+    description: 'Gemini 2.0 Flash 直连 (备用)',
+    keyName: 'GEMINI_API_KEY',
+    provider: 'Google',
+    docsUrl: 'https://aistudio.google.com/app/apikey',
+    category: 'ai',
+    required: false
+  },
+  // ========== 数据服务 ==========
   {
     id: 'apify',
     name: 'Apify API',
@@ -40,22 +62,23 @@ const PREDEFINED_APIS: Omit<ApiConfig, 'value' | 'status' | 'actualValue'>[] = [
     required: true
   },
   {
-    id: 'rainforest',
-    name: 'Rainforest API',
-    description: 'Amazon 产品数据（已弃用，使用 Apify 替代）',
-    keyName: 'VITE_RAINFOREST_API_KEY',
-    provider: 'Rainforest',
-    docsUrl: 'https://www.rainforestapi.com/',
+    id: 'rapidapi',
+    name: 'RapidAPI (Real-Time Amazon)',
+    description: 'Amazon 实时数据 API',
+    keyName: 'RAPIDAPI_KEY',
+    provider: 'RapidAPI',
+    docsUrl: 'https://rapidapi.com/letscrape-6bRBa3QguO5/api/real-time-amazon-data',
     category: 'data',
     required: false
   },
+    // ========== 后端服务 ==========
   {
-    id: 'rapidapi',
-    name: 'RapidAPI',
-    description: '备用 API 网关',
-    keyName: 'VITE_RAPIDAPI_KEY',
-    provider: 'RapidAPI',
-    docsUrl: 'https://rapidapi.com/',
+    id: 'backend_api',
+    name: '后端 API 地址',
+    description: 'TradeNexus 后端服务地址',
+    keyName: 'VITE_API_BASE',
+    provider: 'Self-hosted',
+    docsUrl: '',
     category: 'other',
     required: false
   }
